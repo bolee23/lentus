@@ -1,7 +1,8 @@
-#include "lentus.hpp"
+#include "lentus/lentus.hpp"
+#include <iostream>
 
 int main(int argc, char **argv)
 {
-    printMessage();
+
     return 0;
 }

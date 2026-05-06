@@ -19,10 +19,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 # Lentus executable
-add_executable(lentus lentus.cpp lentus-cli.cpp)
+add_executable(lentus lentus-cli.cpp lentus/runtime.cpp)
 
 # Test executable
-add_executable(tests lentus.cpp tests.cpp)
+add_executable(tests tests.cpp lentus/runtime.cpp)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 
 # Set default build type to Release if not specified
