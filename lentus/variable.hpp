@@ -1,11 +1,9 @@
-#ifndef RUNTIME_HPP
-#define RUNTIME_HPP
+#ifndef VARIABLE_HPP
+#define VARIABLE_HPP
 
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <filesystem>
-#include "code-units.hpp"
 
 enum class variable_type : int
 {
@@ -17,6 +15,8 @@ enum class variable_type : int
     TABLE,
     FUNCTION
 };
+
+class ast_node;
 
 class function
 {
@@ -80,52 +80,6 @@ public:
 
     bool operator==(const variable &var) const;
     bool operator!=(const variable &var) const { return !(*this == var); }
-};
-
-class program_module
-{
-    std::filesystem::path path;
-    parsed_code_unit code;
-    variable root_table; // must be TABLE type
-};
-
-class program
-{
-    std::unordered_map<std::filesystem::path, program_module> modules;
-    std::vector<variable> variables;
-
-    program_module *initialize_module(std::filesystem::path &path);
-    variable &add_variable(variable &&variable);
-
-    variable &create_variable(bool value);
-    variable &create_variable(double value);
-    variable &create_variable(std::string &value);
-    variable &create_variable(std::vector<variable *> &value);
-    variable &create_variable(std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &value);
-    variable &create_function(function *value);
-};
-
-struct stack_frame
-{
-    std::unordered_map<std::string, variable *> local_variables;
-};
-
-struct ast_stack_frame
-{
-    ast_node *node;
-};
-
-class execution_context
-{
-private:
-    std::vector<stack_frame> call_stack;
-    std::vector<ast_stack_frame> ast_stack;
-    program *program;
-
-public:
-    void execute_node(ast_node *node);
-    void execute_function(variable *function, std::vector<variable *> &arguments);
-    void execute_module(program_module *module);
 };
 
 #endif
