@@ -19,7 +19,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 set(LENTUS_SOURCES
-  lentus/runtime.cpp
   lentus/lexer.cpp
   lentus/token.cpp
   lentus/variable.cpp
@@ -33,7 +32,7 @@ add_executable(lentus
 
 # Test executable
 add_executable(tests 
-  tests.cpp 
+  tests/lexer-tests.cpp 
   ${LENTUS_SOURCES}
 )
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

@@ -1,9 +1,8 @@
 #ifndef LENTUS_HPP
 #define LENTUS_HPP
 
-#include "loader.hpp"
-#include "lexer.hpp"
 #include "token.hpp"
+#include "lexer.hpp"
 #include "parser.hpp"
 
 #include "variable.hpp"
