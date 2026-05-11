@@ -39,23 +39,6 @@ struct lexer_data
 };
 
 /**
- * Tests if the current character matches an expected character, and advances
- * the position of the character
- * @param data current state of the lexer
- * @param expected character to check for
- * @return true if the character at the current position matches
- */
-bool expect(lexer_data &data, char expected);
-
-/**
- * Tests if the current character matches an expected character
- * @param data current state of the lexer
- * @param expected character to check for
- * @return true if the character at the current position matches
- */
-bool peek(const lexer_data &data, char expected);
-
-/**
  * Handles an alphanumeric sequence of numbers
  * @param data current state of the lexer
  */
@@ -79,6 +62,13 @@ void handle_identifier_or_keyword(lexer_data &data);
  * @return true if a symbolic token was found and handled, false otherwise
  */
 bool handle_symbolic_token(lexer_data &data);
+
+/**
+ * Handles single and multi line comments
+ * @param data current state of the lexer
+ * @return true if a comment was found and handled, false otherwise
+ */
+bool handle_comment(lexer_data &data);
 
 /**
  * Tokenizes a raw code unit into a lexed code unit

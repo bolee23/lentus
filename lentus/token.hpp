@@ -12,10 +12,10 @@ enum class token_type : int
     NUMBER,
 
     END_STATEMENT, /** ; */
-    PLUS,          /** \+ */
-    MINUS,         /** \- */
-    ASTERISK,      /** * */
-    SLASH,         /** / */
+    ADD,           /** \+ */
+    SUBTRACT,      /** \- */
+    MULTIPLY,      /** * */
+    DIVIDE,        /** / */
     DOT,           /** . */
 
     // Brackets
@@ -35,11 +35,13 @@ enum class token_type : int
     GREATER,       /** > */
 
     // Assigments
-    ASSIGN,       /** = (assignment) */
-    ASSIGN_PLUS,  /** += */
-    ASSIGN_MINUS, /** -= */
-    INCREMENT,    /** ++ */
-    DECREMENT,    /** -- */
+    ASSIGN,          /** = (assignment) */
+    ADD_ASSIGN,      /** += */
+    SUBTRACT_ASSIGN, /** -= */
+    MULTIPLY_ASSIGN, /** *= */
+    DIVIDE_ASSIGN,   /** /= */
+    INCREMENT,       /** ++ */
+    DECREMENT,       /** -- */
 
     // Keywords
     VAR,      /** var */

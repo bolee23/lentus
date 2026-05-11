@@ -6,10 +6,10 @@ const token_trie_node token_trie = {
     std::nullopt,
     {
         {';', token_trie_node{token_type::END_STATEMENT}},
-        {'+', token_trie_node{token_type::PLUS, {{'=', token_trie_node{token_type::ASSIGN_PLUS}}, {'+', token_trie_node{token_type::INCREMENT}}}}},
-        {'-', token_trie_node{token_type::MINUS, {{'=', token_trie_node{token_type::ASSIGN_MINUS}}, {'-', token_trie_node{token_type::DECREMENT}}}}},
-        {'*', token_trie_node{token_type::ASTERISK}},
-        {'/', token_trie_node{token_type::SLASH}},
+        {'+', token_trie_node{token_type::ADD, {{'=', token_trie_node{token_type::ADD_ASSIGN}}, {'+', token_trie_node{token_type::INCREMENT}}}}},
+        {'-', token_trie_node{token_type::SUBTRACT, {{'=', token_trie_node{token_type::SUBTRACT_ASSIGN}}, {'-', token_trie_node{token_type::DECREMENT}}}}},
+        {'*', token_trie_node{token_type::MULTIPLY, {{'=', token_trie_node{token_type::MULTIPLY_ASSIGN}}}}},
+        {'/', token_trie_node{token_type::DIVIDE, {{'=', token_trie_node{token_type::DIVIDE_ASSIGN}}, {'/', token_trie_node{std::nullopt /** Comment */}}}}},
         {'.', token_trie_node{token_type::DOT}},
 
         {'(', token_trie_node{token_type::LEFT_BRACKET}},
@@ -48,24 +48,6 @@ const std::unordered_map<std::string, token_type> keywords = {
     {"or", token_type::OR},
     {"not", token_type::NOT},
 };
-
-bool expect(lexer_data &data, char expected)
-{
-    if (data.source[data.position] == expected)
-    {
-        data.position++;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-bool peek(const lexer_data &data, char expected)
-{
-    return data.source[data.position] == expected;
-}
 
 void handle_number(lexer_data &data)
 {
@@ -254,6 +236,59 @@ bool handle_symbolic_token(lexer_data &data)
     }
 }
 
+bool handle_comment(lexer_data &data)
+{
+    char c = data.source[data.position];
+    if (c == '/')
+    {
+        if (data.position + 1 < (int)data.source.length())
+        {
+            char second = data.source[data.position + 1];
+            if (second == '/') // Single line comment
+            {
+
+                // Skip characters until \n reached or end of file.
+                for (int i = data.position + 2; i < (int)data.source.length(); i++)
+                {
+                    if (data.source[i] == '\n')
+                    {
+                        data.line_number++;
+                        data.line_start_position = i + 1;
+                        data.position = i + 1; // Update position to be after the comment
+                        break;
+                    }
+                }
+                return true;
+            }
+            else if (second == '*') // Multi line comment
+            {
+                // Skip characters until */ reached.
+                bool star = false; // True if previous character was a "*"
+                for (int i = data.position + 2; i < (int)data.source.length(); i++)
+                {
+                    if (star && data.source[i] == '/') // Previous was * and this character is /
+                    {
+                        data.position = i + 1; // Update position to be after the comment
+                        break;
+                    }
+                    if (data.source[i] == '\n')
+                    {
+                        data.line_number++;
+                        data.line_start_position = i + 1;
+                    }
+                    star = data.source[i] == '*';
+                }
+                if (data.position >= (int)data.source.length())
+                {
+                    write_error_message(data, "Unclosed /* comment");
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 std::optional<std::vector<token>> tokenize(const std::string &source, std::ostream &error_stream)
 {
     std::vector<token> tokens;
@@ -280,6 +315,11 @@ std::optional<std::vector<token>> tokenize(const std::string &source, std::ostre
         if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
         {
             handle_identifier_or_keyword(data);
+            continue;
+        }
+
+        if (handle_comment(data))
+        {
             continue;
         }
 

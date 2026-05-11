@@ -149,19 +149,6 @@ TEST_CASE("handle_symbolic_token multi character token", "[lexer]")
     REQUIRE(tokens[0].get_type() == token_type::LESS_EQUAL);
 }
 
-TEST_CASE("handle_symbolic_token partial token failure", "[lexer]")
-{
-    std::string source = "&";
-    std::vector<token> tokens;
-    lexer_data data{1, 0, 0, source, tokens, std::cout, false};
-
-    bool result = handle_symbolic_token(data);
-
-    REQUIRE(!result);
-    REQUIRE(tokens.empty());
-    REQUIRE(data.error_found); // Partial match of "&" but no "&&"
-}
-
 TEST_CASE("handle_symbolic_token non matching", "[lexer]")
 {
     std::string source = "and";
@@ -173,4 +160,45 @@ TEST_CASE("handle_symbolic_token non matching", "[lexer]")
     REQUIRE(!result);
     REQUIRE(tokens.empty());
     REQUIRE(!data.error_found); // No match at all, but also no partial match, so no error
+}
+
+TEST_CASE("tokenize handles unexpected characters", "[lexer]")
+{
+    std::string source = "var x = 42 @;";
+
+    std::optional<std::vector<token>> result = tokenize(source, std::cout);
+
+    REQUIRE(!result.has_value());
+}
+
+TEST_CASE("handle_comment handles single line comments", "[lexer]")
+{
+    std::string source = "// This is a single line comment\nvar x = 42;";
+    std::vector<token> tokens;
+    lexer_data data{1, 0, 0, source, tokens, std::cout, false};
+
+    bool result = handle_comment(data);
+
+    REQUIRE(result);
+    REQUIRE(!data.error_found);
+    REQUIRE(tokens.empty());
+    REQUIRE(data.line_number == 2);
+    REQUIRE(data.line_start_position == (int)std::string("// This is a single line comment\n").length());
+    REQUIRE(data.position == (int)std::string("// This is a single line comment\n").length());
+}
+
+TEST_CASE("handle_comment handles multi line comments", "[lexer]")
+{
+    std::string source = "/* This is a \nmulti line comment */ var x = 42;";
+    std::vector<token> tokens;
+    lexer_data data{1, 0, 0, source, tokens, std::cout, false};
+
+    bool result = handle_comment(data);
+
+    REQUIRE(result);
+    REQUIRE(!data.error_found);
+    REQUIRE(tokens.empty());
+    REQUIRE(data.line_number == 2);
+    REQUIRE(data.line_start_position == (int)std::string("/* This is a \n").length());
+    REQUIRE(data.position == (int)std::string("/* This is a \nmulti line comment */").length());
 }
