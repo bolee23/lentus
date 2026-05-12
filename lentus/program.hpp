@@ -1,5 +1,5 @@
-#ifndef PROGRAM_HPP
-#define PROGRAM_HPP
+#ifndef LENTUS_PROGRAM_HPP
+#define LENTUS_PROGRAM_HPP
 
 #include <string>
 #include <vector>

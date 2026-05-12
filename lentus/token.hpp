@@ -1,11 +1,12 @@
-#ifndef TOKEN_HPP
-#define TOKEN_HPP
+#ifndef LENTUS_TOKEN_HPP
+#define LENTUS_TOKEN_HPP
 
 #include <string>
 #include <optional>
 
 enum class token_type : int
 {
+    NONE, /** none */
     // Data tokens
     IDENTIFIER,
     STRING,
@@ -67,7 +68,10 @@ class token
 {
 private:
     token_type type;
-    int line_number;
+    int line_number;    /** Line number where token appears */
+    int start_position; /** Index where token starts (inclusive) */
+    int end_position;   /** Index where token ends (exclusive) */
+
     union
     {
         std::string *identifier_name;
@@ -76,7 +80,8 @@ private:
     };
 
 public:
-    token(token_type type, int line_number);
+    token() : type(token_type::NONE), line_number(0), start_position(0), end_position(0) {}
+    token(token_type type, int line_number, int start_position, int end_position) : type(type), line_number(line_number), start_position(start_position), end_position(end_position) {};
     token(const token &tok);
     token(token &&tok);
 
@@ -84,16 +89,20 @@ public:
     token &operator=(token &&tok);
 
 private:
-    token(token_type type, int line_number, std::string &&string_data);
-    token(token_type type, int line_number, double number_constant);
+    token(token_type type, int line_number, int start_position, int end_position, std::string &&string_data);
+    token(token_type type, int line_number, int start_position, int end_position, double number_constant);
 
 public:
-    static token identifier_token(std::string *identifier, int line_number);
+    static token identifier_token(std::string *identifier, int line_number, int start_position, int end_position);
 
-    static token string_constant_token(std::string *string_constant, int line_number);
-    static token number_constant_token(double number_constant, int line_number);
+    static token string_constant_token(std::string *string_constant, int line_number, int start_position, int end_position);
+    static token number_constant_token(double number_constant, int line_number, int start_position, int end_position);
 
+    /** Convert the token to a enum name representation */
     std::string to_string() const;
+
+    /** Get the substring associated with the token */
+    std::string to_string(const std::string &source) const;
 
     /**
      * Get the type of the token
@@ -106,6 +115,18 @@ public:
      * @return the line number of the token
      */
     int get_line_number() const { return line_number; }
+
+    /**
+     * Get the start position of the token in the source string
+     * @return the start position of the token in the source string
+     */
+    int get_start_position() const { return start_position; }
+
+    /**
+     * Get the end position of the token in the source string
+     * @return the end position of the token in the source string
+     */
+    int get_end_position() const { return end_position; }
 
     /**
      * Get the identifier name of the token, if the token is an identifier token

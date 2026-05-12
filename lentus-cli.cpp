@@ -22,11 +22,25 @@ int main(int argc, char **argv)
         std::ifstream input_stream(source_path);
         std::string file_contents((std::istreambuf_iterator<char>(input_stream)), std::istreambuf_iterator<char>());
 
-        std::optional<std::vector<token>> result = tokenize(file_contents, std::cout);
+        std::optional<std::vector<token>> token_result = tokenize(file_contents, std::cout);
 
-        if (result)
+        if (token_result)
         {
-            write_tokens(result.value(), std::cout);
+            write_tokens(token_result.value(), std::cout);
+
+            std::cout << "Parsing..." << std::endl;
+
+            parse_result result_parsing = parse(token_result.value(), file_contents, std::cout);
+
+            write_expression(result_parsing.ast);
+            delete result_parsing.ast;
+
+            if (result_parsing.error)
+            {
+                std::cout << "Parsing failed due to syntax errors" << std::endl;
+                return 1;
+            }
+
             return 0;
         }
         else

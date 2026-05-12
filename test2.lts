@@ -1,0 +1,21 @@
+/*
+    Test multiline comment
+    abcedef;;;; ***8 ///// * / * / /* /* /* /*
+*/
+var variable = "Hello ";
+var anda = "World!";
+
+var escape = "this is in \"quotes\"\nnext line. single backslash: \\. invalid escape keeps backslash: \h";
+
+var hello_world = variable + anda;
+if(hello_world == "Hello World!") { // test comment
+    print("Success!");
+}
+
+test.dot.operator = 3;
+
+// TEST COMMENT
+
+if(2 >= 3 or 2 > 3 || 4 != 4 /* test  comment */and true) {
+    print("Failure!");
+}

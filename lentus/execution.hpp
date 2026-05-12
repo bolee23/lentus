@@ -1,5 +1,5 @@
-#ifndef EXECUTION_HPP
-#define EXECUTION_HPP
+#ifndef LENTUS_EXECUTION_HPP
+#define LENTUS_EXECUTION_HPP
 
 #include "program.hpp"
 

@@ -5,28 +5,28 @@
 const token_trie_node token_trie = {
     std::nullopt,
     {
-        {';', token_trie_node{token_type::END_STATEMENT}},
-        {'+', token_trie_node{token_type::ADD, {{'=', token_trie_node{token_type::ADD_ASSIGN}}, {'+', token_trie_node{token_type::INCREMENT}}}}},
-        {'-', token_trie_node{token_type::SUBTRACT, {{'=', token_trie_node{token_type::SUBTRACT_ASSIGN}}, {'-', token_trie_node{token_type::DECREMENT}}}}},
-        {'*', token_trie_node{token_type::MULTIPLY, {{'=', token_trie_node{token_type::MULTIPLY_ASSIGN}}}}},
-        {'/', token_trie_node{token_type::DIVIDE, {{'=', token_trie_node{token_type::DIVIDE_ASSIGN}}, {'/', token_trie_node{std::nullopt /** Comment */}}}}},
-        {'.', token_trie_node{token_type::DOT}},
+        {';', token_trie_node(token_type::END_STATEMENT)},
+        {'+', token_trie_node(token_type::ADD, {{'=', token_trie_node(token_type::ADD_ASSIGN)}, {'+', token_trie_node(token_type::INCREMENT)}})},
+        {'-', token_trie_node(token_type::SUBTRACT, {{'=', token_trie_node(token_type::SUBTRACT_ASSIGN)}, {'-', token_trie_node(token_type::DECREMENT)}})},
+        {'*', token_trie_node(token_type::MULTIPLY, {{'=', token_trie_node(token_type::MULTIPLY_ASSIGN)}})},
+        {'/', token_trie_node(token_type::DIVIDE, {{'=', token_trie_node(token_type::DIVIDE_ASSIGN)}})},
+        {'.', token_trie_node(token_type::DOT)},
 
-        {'(', token_trie_node{token_type::LEFT_BRACKET}},
-        {')', token_trie_node{token_type::RIGHT_BRACKET}},
-        {'{', token_trie_node{token_type::LEFT_BRACE}},
-        {'}', token_trie_node{token_type::RIGHT_BRACE}},
-        {'[', token_trie_node{token_type::LEFT_INDEX}},
-        {']', token_trie_node{token_type::RIGHT_INDEX}},
+        {'(', token_trie_node(token_type::LEFT_BRACKET)},
+        {')', token_trie_node(token_type::RIGHT_BRACKET)},
+        {'{', token_trie_node(token_type::LEFT_BRACE)},
+        {'}', token_trie_node(token_type::RIGHT_BRACE)},
+        {'[', token_trie_node(token_type::LEFT_INDEX)},
+        {']', token_trie_node(token_type::RIGHT_INDEX)},
 
-        {'<', token_trie_node{token_type::LESS, {{'=', token_trie_node{token_type::LESS_EQUAL}}}}},
-        {'>', token_trie_node{token_type::GREATER, {{'=', token_trie_node{token_type::GREATER_EQUAL}}}}},
+        {'<', token_trie_node(token_type::LESS, {{'=', token_trie_node(token_type::LESS_EQUAL)}})},
+        {'>', token_trie_node(token_type::GREATER, {{'=', token_trie_node(token_type::GREATER_EQUAL)}})},
 
-        {'=', token_trie_node{token_type::ASSIGN, {{'=', token_trie_node{token_type::EQUAL}}}}},
+        {'=', token_trie_node(token_type::ASSIGN, {{'=', token_trie_node(token_type::EQUAL)}})},
 
-        {'!', token_trie_node{token_type::NOT, {{'=', token_trie_node{token_type::NOT_EQUAL}}}}},
-        {'&', token_trie_node{std::nullopt, {{'&', token_trie_node{token_type::AND}}}}},
-        {'|', token_trie_node{std::nullopt, {{'|', token_trie_node{token_type::OR}}}}},
+        {'!', token_trie_node(token_type::NOT, {{'=', token_trie_node(token_type::NOT_EQUAL)}})},
+        {'&', token_trie_node(std::nullopt, {{'&', token_trie_node(token_type::AND)}})},
+        {'|', token_trie_node(std::nullopt, {{'|', token_trie_node(token_type::OR)}})},
     }};
 
 // Map of keywords to their token types
@@ -53,8 +53,8 @@ void handle_number(lexer_data &data)
 {
     // i will eventually contain the index of the last character + 1
     int i;
-
     char last_char;
+    int start_position = data.position;
 
     // Loop breaks if end of file reached or non alphanumeric character reached
     for (i = data.position; i < (int)data.source.length(); i++)
@@ -87,7 +87,7 @@ void handle_number(lexer_data &data)
     try
     {
         double d = std::stod(substring);
-        data.tokens.push_back(token::number_constant_token(d, data.line_number));
+        data.tokens.push_back(token::number_constant_token(d, data.line_number, start_position, data.position));
     }
     catch (const std::invalid_argument &e)
     {
@@ -98,6 +98,7 @@ void handle_number(lexer_data &data)
 void handle_string_constant(lexer_data &data)
 {
     int i;
+    int start_position = data.position;
     bool escape = false;
     std::string substring;
 
@@ -173,12 +174,13 @@ void handle_string_constant(lexer_data &data)
     // Update position to be after the closing quote
     data.position = i + 1;
 
-    data.tokens.push_back(token::string_constant_token(new std::string(std::move(substring)), data.line_number));
+    data.tokens.push_back(token::string_constant_token(new std::string(std::move(substring)), data.line_number, start_position, data.position));
 }
 
 void handle_identifier_or_keyword(lexer_data &data)
 {
     int i;
+    int start_position = data.position;
 
     // Loop breaks if end of file reached or non alphanumeric character reached
     for (i = data.position; i < (int)data.source.length(); i++)
@@ -194,11 +196,11 @@ void handle_identifier_or_keyword(lexer_data &data)
 
     if (keywords.contains(substring)) // Keyword
     {
-        data.tokens.push_back(token(keywords.at(substring), data.line_number));
+        data.tokens.push_back(token(keywords.at(substring), data.line_number, start_position, data.position));
     }
     else // Identifier
     {
-        data.tokens.push_back(token::identifier_token(new std::string(std::move(substring)), data.line_number));
+        data.tokens.push_back(token::identifier_token(new std::string(std::move(substring)), data.line_number, start_position, data.position));
     }
 }
 
@@ -206,6 +208,7 @@ bool handle_symbolic_token(lexer_data &data)
 {
     // Pointer to current trie node
     const token_trie_node *current_node = &token_trie;
+    int start_position = data.position;
 
     int i;
 
@@ -226,8 +229,8 @@ bool handle_symbolic_token(lexer_data &data)
     if (current_node->default_token.has_value())
     {
         token_type type = current_node->default_token.value();
-        data.tokens.push_back(token(type, data.line_number));
-        data.position = i; // Update position to be after the token
+        data.tokens.push_back(token(type, data.line_number, start_position, i));
+        data.position = i;
         return true;
     }
     else // Token failed to match
@@ -387,4 +390,5 @@ void write_tokens(const std::vector<token> &tokens, std::ostream &out)
             out << std::endl;
         }
     }
+    out << std::endl;
 }

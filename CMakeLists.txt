@@ -22,6 +22,8 @@ set(LENTUS_SOURCES
   lentus/lexer.cpp
   lentus/token.cpp
   lentus/variable.cpp
+  lentus/ast.cpp
+  lentus/parser.cpp
 )
 
 # Lentus executable

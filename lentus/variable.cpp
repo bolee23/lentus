@@ -7,11 +7,11 @@ std::size_t variable_hasher::operator()(const variable *var) const
     case variable_type::NONE:
         return 0;
     case variable_type::BOOLEAN:
-        return std::hash<bool>()(var->boolean) + 1;
+        return std::hash<bool>()(var->get_boolean()) + 1;
     case variable_type::NUMBER:
-        return std::hash<double>()(var->number);
+        return std::hash<double>()(var->get_number());
     case variable_type::STRING:
-        return std::hash<std::string>()(*var->string);
+        return std::hash<std::string>()(*var->get_string());
     case variable_type::LIST: // lists, tables and functions are not allowed to be used as keys
         return 0;
     case variable_type::TABLE:
@@ -64,22 +64,22 @@ variable::variable(const variable &var) : type(var.type)
     case variable_type::NONE:
         break;
     case variable_type::BOOLEAN:
-        boolean = false;
+        boolean = var.get_boolean();
         break;
     case variable_type::NUMBER:
-        number = 0;
+        number = var.get_number();
         break;
     case variable_type::STRING:
-        string = new std::string();
+        string = new std::string(*var.get_string());
         break;
     case variable_type::LIST:
-        list = new std::vector<variable *>();
+        list = new std::vector<variable *>(*var.get_list());
         break;
     case variable_type::TABLE:
-        table = new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(0, variable_hasher(), variable_equal());
+        table = new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(*var.get_table());
         break;
     case variable_type::FUNCTION:
-        fn = nullptr;
+        fn = new function(*var.get_function());
         break;
     }
 }
@@ -250,7 +250,7 @@ bool variable::operator==(const variable &var) const
         {
             if (var.table->contains(key))
             {
-                if (*value != *(*var.table)[key])
+                if (*value != *var.table->at(key))
                 {
                     return false;
                 }
@@ -264,6 +264,78 @@ bool variable::operator==(const variable &var) const
     case variable_type::FUNCTION:
         return this->fn == var.fn;
     default:
+        return false;
+    }
+}
+
+double variable::get_number() const
+{
+    if (type == variable_type::NUMBER)
+    {
+        return number;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+const std::string *variable::get_string() const
+{
+    if (type == variable_type::STRING)
+    {
+        return string;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+const std::vector<variable *> *variable::get_list() const
+{
+    if (type == variable_type::LIST)
+    {
+        return list;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *variable::get_table() const
+{
+    if (type == variable_type::TABLE)
+    {
+        return table;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+const function *variable::get_function() const
+{
+    if (type == variable_type::FUNCTION)
+    {
+        return fn;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+bool variable::get_boolean() const
+{
+    if (type == variable_type::BOOLEAN)
+    {
+        return boolean;
+    }
+    else
+    {
         return false;
     }
 }

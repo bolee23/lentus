@@ -1,31 +1,42 @@
 #ifndef LENTUS_PARSER_HPP
 #define LENTUS_PARSER_HPP
 
-#include <filesystem>
-#include <string>
-#include <vector>
-#include <unordered_map>
+#include "token.hpp"
+#include "ast.hpp"
 
-class program;
-
-class ast_node
+/** Represents a line of source code (for error reporting) */
+struct source_line
 {
-private:
-    int line_number;
-
-public:
-    virtual void visit(program &program);
-    virtual std::vector<ast_node *> get_children();
+    std::string text;
+    int start_position;
 };
 
-class parsed_code_unit
+struct parse_result
 {
-private:
-    ast_node *root_node;
-    std::filesystem::path path;
-
-public:
-    parsed_code_unit(ast_node *root_node, const std::filesystem::path &path) : root_node(root_node), path(path) {};
+    ast_node *ast;
+    bool error;
 };
+
+struct parser_data
+{
+    const std::vector<token> &tokens;
+    const std::string &source_string;
+    const std::vector<source_line> &lines;
+    std::ostream &error_stream;
+    bool error_found = false;
+
+    int position = 0; /** Current position in the tokens vector */
+};
+
+/**
+ * Parses a vector of tokens into an abstract syntax tree (AST) represented by an expression pointer. The AST can then be evaluated by the execution context.
+ * @param tokens vector of tokens to parse
+ * @param source_string the original source code string (for error reporting)
+ * @param error_stream stream to write error messages to
+ * @return pointer to the root of the AST, or nullptr if a syntax error is found
+ */
+parse_result parse(const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream);
+
+void write_expression(ast_node *expr);
 
 #endif

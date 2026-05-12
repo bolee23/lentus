@@ -64,7 +64,7 @@ void handle_identifier_or_keyword(lexer_data &data);
 bool handle_symbolic_token(lexer_data &data);
 
 /**
- * Handles single and multi line comments
+ * Handles single and multi line
  * @param data current state of the lexer
  * @return true if a comment was found and handled, false otherwise
  */

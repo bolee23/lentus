@@ -6,13 +6,13 @@
 #include <unordered_map>
 #include <filesystem>
 #include "variable.hpp"
-#include "parser.hpp"
+#include "ast.hpp"
 
 class program_module
 {
 private:
     std::filesystem::path path;
-    parsed_code_unit *parsed_code;
+    ast_node *ast_root;
     variable *root_table;
 
 public:

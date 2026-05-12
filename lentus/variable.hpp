@@ -1,5 +1,5 @@
-#ifndef VARIABLE_HPP
-#define VARIABLE_HPP
+#ifndef LENTUS_VARIABLE_HPP
+#define LENTUS_VARIABLE_HPP
 
 #include <string>
 #include <vector>
@@ -46,40 +46,51 @@ class variable
 {
 private:
     variable_type type;
-
-public:
     union
     {
         bool boolean;
         double number;
-        std::string *string;
-        std::vector<variable *> *list;
-        std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *table;
-        function *fn;
+        const std::string *string;
+        std::vector<variable *> const *list;
+        std::unordered_map<variable *, variable *, variable_hasher, variable_equal> const *table;
+        function const *fn;
     };
 
+public:
+    variable() : type(variable_type::NONE) {}
     variable(variable_type type);
     variable(bool value) : type(variable_type::BOOLEAN), boolean(value) {}
     variable(double value) : type(variable_type::NUMBER), number(value) {}
-    variable(std::string &value) : type(variable_type::STRING), string(new std::string(value)) {}
-    variable(std::vector<variable *> &value) : type(variable_type::LIST), list(new std::vector<variable *>(value)) {}
-    variable(std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &value) : type(variable_type::TABLE), table(new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(value)) {}
-    variable(function *value) : type(variable_type::FUNCTION), fn(value) {}
+
+    variable(const std::string *value) : type(variable_type::STRING), string(value) {};
+    variable(const std::string &value) : type(variable_type::STRING), string(new std::string(value)) {}
+
+    variable(const std::vector<variable *> &value) : type(variable_type::LIST), list(new std::vector<variable *>(value)) {}
+    variable(const std::vector<variable *> &&value) : type(variable_type::LIST), list(new std::vector<variable *>(std::move(value))) {}
+
+    variable(const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &value) : type(variable_type::TABLE), table(new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(value)) {}
+    variable(const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &&value) : type(variable_type::TABLE), table(new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(std::move(value))) {}
+
+    variable(function const *value) : type(variable_type::FUNCTION), fn(value) {}
 
     variable(const variable &var);
-
     variable(variable &&var);
 
     variable &operator=(const variable &var);
-
     variable &operator=(variable &&var);
-
     variable_type get_type() const { return type; }
 
     ~variable();
 
     bool operator==(const variable &var) const;
     bool operator!=(const variable &var) const { return !(*this == var); }
+
+    double get_number() const;
+    const std::string *get_string() const;
+    const std::vector<variable *> *get_list() const;
+    const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *get_table() const;
+    const function *get_function() const;
+    bool get_boolean() const;
 };
 
 #endif
