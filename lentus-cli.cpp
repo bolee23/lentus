@@ -33,13 +33,20 @@ int main(int argc, char **argv)
             parse_result result_parsing = parse(token_result.value(), file_contents, std::cout);
 
             write_expression(result_parsing.ast);
-            delete result_parsing.ast;
 
             if (result_parsing.error)
             {
+                delete result_parsing.ast;
+
                 std::cout << "Parsing failed due to syntax errors" << std::endl;
                 return 1;
             }
+
+            program p = program();
+            variable *result = result_parsing.ast->evaluate(p);
+            std::cout << "Result: " << result->to_string();
+
+            delete result_parsing.ast;
 
             return 0;
         }

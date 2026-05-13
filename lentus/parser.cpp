@@ -191,9 +191,19 @@ parse_result parse_equality(parser_data &data)
     return parse_left_associative(data, parse_comparison, {token_type::NOT_EQUAL, token_type::EQUAL});
 }
 
+parse_result parse_logical_and(parser_data &data)
+{
+    return parse_left_associative(data, parse_equality, {token_type::AND});
+}
+
+parse_result parse_logical_or(parser_data &data)
+{
+    return parse_left_associative(data, parse_logical_and, {token_type::OR});
+}
+
 parse_result parse_expression(parser_data &data)
 {
-    return parse_equality(data);
+    return parse_logical_or(data);
 }
 
 std::vector<source_line> split_lines(const std::string &source_string)

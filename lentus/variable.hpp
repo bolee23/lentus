@@ -51,9 +51,9 @@ private:
         bool boolean;
         double number;
         const std::string *string;
-        std::vector<variable *> const *list;
-        std::unordered_map<variable *, variable *, variable_hasher, variable_equal> const *table;
-        function const *fn;
+        std::vector<variable *> *list;
+        std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *table;
+        const function *fn;
     };
 
 public:
@@ -64,6 +64,7 @@ public:
 
     variable(const std::string *value) : type(variable_type::STRING), string(value) {};
     variable(const std::string &value) : type(variable_type::STRING), string(new std::string(value)) {}
+    variable(const std::string &&value) : type(variable_type::STRING), string(new std::string(std::move(value))) {}
 
     variable(const std::vector<variable *> &value) : type(variable_type::LIST), list(new std::vector<variable *>(value)) {}
     variable(const std::vector<variable *> &&value) : type(variable_type::LIST), list(new std::vector<variable *>(std::move(value))) {}
@@ -79,11 +80,22 @@ public:
     variable &operator=(const variable &var);
     variable &operator=(variable &&var);
     variable_type get_type() const { return type; }
+    bool is(variable_type type) const { return this->type == type; }
+    std::string get_type_name() const;
+
+    void write_to_string(std::string &str);
+    std::string to_string() const;
 
     ~variable();
 
     bool operator==(const variable &var) const;
     bool operator!=(const variable &var) const { return !(*this == var); }
+
+    bool operator<=(const variable &var) const;
+    bool operator<(const variable &var) const;
+
+    bool operator>=(const variable &var) const { return !(*this < var); }
+    bool operator>(const variable &var) const { return !(*this <= var); }
 
     double get_number() const;
     const std::string *get_string() const;

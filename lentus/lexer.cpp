@@ -51,6 +51,12 @@ const std::unordered_map<std::string, token_type> keywords = {
 
 void handle_number(lexer_data &data)
 {
+    char c = data.source[data.position];
+    if (c >= '0' && c <= '9')
+    {
+    
+    }
+
     // i will eventually contain the index of the last character + 1
     int i;
     char last_char;
@@ -298,12 +304,8 @@ std::optional<std::vector<token>> tokenize(const std::string &source, std::ostre
 
     lexer_data data = {1, 0, 0, source, tokens, error_stream, false};
 
-    while (true)
+    while (data.position < (int)data.source.length())
     {
-        if (data.position >= (int)data.source.length())
-        {
-            break;
-        }
 
         char c = data.source[data.position];
 

@@ -1,4 +1,5 @@
 #include "variable.hpp"
+#include "magic_enum.hpp"
 
 std::size_t variable_hasher::operator()(const variable *var) const
 {
@@ -268,6 +269,94 @@ bool variable::operator==(const variable &var) const
     }
 }
 
+bool variable::operator<=(const variable &var) const
+{
+    if (this->get_type() != var.get_type())
+        return false;
+    switch (this->get_type())
+    {
+    case variable_type::NONE:
+        return true;
+    case variable_type::BOOLEAN:
+        return this->boolean <= var.boolean;
+    case variable_type::NUMBER:
+        return this->number <= var.number;
+    case variable_type::STRING:
+        return *this->string <= *var.string;
+    case variable_type::LIST:
+        if (this->list->size() != var.list->size())
+        {
+            return false;
+        }
+
+        // Lexical ordering
+        for (size_t i = 0; i < this->list->size(); i++)
+        {
+            if (*(*this->list)[i] < *(*var.list)[i])
+            {
+                return true;
+            }
+            else if (*(*this->list)[i] > *(*var.list)[i])
+            {
+                return false;
+            }
+        }
+
+        // They equal, return true
+        return true;
+    case variable_type::TABLE:
+        return false;
+    case variable_type::FUNCTION:
+        return false;
+    default:
+        return false;
+    }
+}
+
+bool variable::operator<(const variable &var) const
+{
+    if (this->get_type() != var.get_type())
+        return false;
+    switch (this->get_type())
+    {
+    case variable_type::NONE:
+        return false;
+    case variable_type::BOOLEAN:
+        return this->boolean < var.boolean;
+    case variable_type::NUMBER:
+        return this->number < var.number;
+    case variable_type::STRING:
+        return *this->string < *var.string;
+    case variable_type::LIST:
+        if (this->list->size() != var.list->size())
+        {
+            return false;
+        }
+
+        // Lexical ordering
+        for (size_t i = 0; i < this->list->size(); i++)
+        {
+            if (*(*this->list)[i] < *(*var.list)[i])
+            {
+                return true;
+            }
+            else if (*(*this->list)[i] > *(*var.list)[i])
+            {
+                return false;
+            }
+        }
+
+        // They equal, return false
+        return false;
+    case variable_type::TABLE:
+        return false;
+    case variable_type::FUNCTION:
+        return false;
+    default:
+        return false;
+    }
+}
+
 double variable::get_number() const
 {
     if (type == variable_type::NUMBER)
@@ -337,5 +426,141 @@ bool variable::get_boolean() const
     else
     {
         return false;
+    }
+}
+
+std::string variable::get_type_name() const
+{
+    return std::string(magic_enum::enum_name(type));
+}
+
+void variable::write_to_string(std::string &str)
+{
+    switch (type)
+    {
+    case variable_type::NONE:
+        str += "none";
+        break;
+    case variable_type::BOOLEAN:
+        if (boolean)
+        {
+            str += "true";
+        }
+        else
+        {
+            str += "false";
+        }
+        break;
+    case variable_type::NUMBER:
+        str += std::to_string(number);
+        break;
+    case variable_type::STRING:
+        str += *string;
+        break;
+    case variable_type::LIST:
+    {
+        str += "[";
+        for (size_t i = 0; i < list->size(); i++)
+        {
+            if (i != 0)
+            {
+                str += ", ";
+            }
+            variable *var = (*list)[i];
+            var->write_to_string(str);
+        }
+        break;
+    }
+    case variable_type::TABLE:
+    {
+        str += "{";
+        bool first = true;
+        for (auto entry : *table)
+        {
+            if (!first)
+            {
+                str += ", ";
+            }
+            else
+            {
+                first = false;
+            }
+
+            entry.first->write_to_string(str);
+            str += " = ";
+            entry.second->write_to_string(str);
+        }
+        str += "}";
+        break;
+    }
+    case variable_type::FUNCTION:
+        str += "<function @" + std::to_string((size_t)this->fn) + ">";
+        break;
+    default:
+        str += "<error>";
+        break;
+    }
+}
+
+std::string variable::to_string() const
+{
+    switch (type)
+    {
+    case variable_type::NONE:
+        return "none";
+    case variable_type::BOOLEAN:
+        if (boolean)
+        {
+            return "true";
+        }
+        else
+        {
+            return "false";
+        }
+    case variable_type::NUMBER:
+        return std::to_string(number);
+    case variable_type::STRING:
+        return "\"" + *string + "\"";
+    case variable_type::LIST:
+    {
+        std::string str = "[";
+        for (size_t i = 0; i < list->size(); i++)
+        {
+            if (i != 0)
+            {
+                str += ", ";
+            }
+            variable *var = (*list)[i];
+            var->write_to_string(str);
+        }
+        str += "]";
+        return str;
+    }
+    case variable_type::TABLE:
+    {
+        std::string str = "{";
+        bool first = true;
+        for (auto entry : *table)
+        {
+            if (!first)
+            {
+                str += ", ";
+            }
+            else
+            {
+                first = false;
+            }
+
+            entry.first->write_to_string(str);
+            str += " = ";
+            entry.second->write_to_string(str);
+        }
+        str += "}";
+        return str;
+    }
+    case variable_type::FUNCTION:
+        return "<function @" + std::to_string((size_t)this->fn) + ">";
+    default:
+        return "<error>";
     }
 }

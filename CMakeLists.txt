@@ -24,6 +24,7 @@ set(LENTUS_SOURCES
   lentus/variable.cpp
   lentus/ast.cpp
   lentus/parser.cpp
+  lentus/program.cpp
 )
 
 # Lentus executable
