@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include "variable.hpp"
-#include "ast.hpp"
+#include "ast-node.hpp"
 
 class program_module
 {

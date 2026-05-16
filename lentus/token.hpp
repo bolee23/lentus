@@ -179,4 +179,6 @@ public:
     ~token();
 };
 
+std::string token_type_to_string(token_type type);
+
 #endif

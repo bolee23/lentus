@@ -22,14 +22,15 @@ set(LENTUS_SOURCES
   lentus/lexer.cpp
   lentus/token.cpp
   lentus/variable.cpp
-  lentus/ast.cpp
+  lentus/expression.cpp
+  lentus/statement.cpp
   lentus/parser.cpp
   lentus/program.cpp
 )
 
 # Lentus executable
 add_executable(lentus 
-  lentus-cli.cpp 
+  lentus-cli.cpp
   ${LENTUS_SOURCES}
 )
 

@@ -3,9 +3,10 @@
 
 #include "token.hpp"
 #include "lexer.hpp"
-#include "ast.hpp"
+#include "ast-node.hpp"
 
 #include "variable.hpp"
+#include "expression.hpp"
 #include "parser.hpp"
 
 #include "program.hpp"

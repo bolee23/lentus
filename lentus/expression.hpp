@@ -7,30 +7,10 @@
 #include <unordered_map>
 #include "token.hpp"
 #include "variable.hpp"
-
-class program;
-
-class ast_node
-{
-protected:
-    int line_number;
-    int start_position;
-    int end_position;
-
-public:
-    int get_line_number() const { return line_number; }
-    int get_start_position() const { return start_position; }
-    int get_end_position() const { return end_position; }
-};
+#include "ast-node.hpp"
 
 class expression : public ast_node
 {
-public:
-    virtual variable *evaluate(program &program) const = 0;
-
-    virtual ~expression() = default;
-
-    virtual std::string to_string() const = 0;
 };
 
 class error_expression : public expression
@@ -174,6 +154,77 @@ public:
     virtual std::string to_string() const override;
 
     ~grouping_expression() override;
+};
+
+class assignment_expression : public expression
+{
+private:
+    std::string identifier;
+    token op;
+    expression *value;
+
+public:
+    assignment_expression(const std::string &identifier, token op, expression *value, int line_number, int start_position, int end_position) : identifier(identifier), op(op), value(value)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    assignment_expression(std::string &&identifier, token op, expression *value, int line_number, int start_position, int end_position) : identifier(std::move(identifier)), op(op), value(value)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    assignment_expression(const assignment_expression &other) = delete;
+    assignment_expression &operator=(const assignment_expression &other) = delete;
+
+    assignment_expression(assignment_expression &&other);
+    assignment_expression &operator=(assignment_expression &&other);
+
+    variable *evaluate(program &program) const override;
+
+    const std::string &get_identifier() const { return identifier; }
+    token get_operator() const { return op; }
+    expression *get_value() const { return value; }
+    virtual std::string to_string() const override;
+
+    ~assignment_expression() override;
+};
+
+class identifier_expression : public expression
+{
+private:
+    std::string identifier;
+
+public:
+    identifier_expression(const std::string &identifier, int line_number, int start_position, int end_position) : identifier(identifier)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    identifier_expression(std::string &&identifier, int line_number, int start_position, int end_position) : identifier(std::move(identifier))
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    identifier_expression(const identifier_expression &other) = delete;
+    identifier_expression &operator=(const identifier_expression &other) = delete;
+
+    identifier_expression(identifier_expression &&other);
+    identifier_expression &operator=(identifier_expression &&other);
+
+    variable *evaluate(program &program) const override;
+    const std::string &get_identifier() const { return identifier; }
+
+    virtual std::string to_string() const override;
+    ~identifier_expression() override = default;
 };
 
 #endif

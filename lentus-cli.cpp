@@ -30,9 +30,9 @@ int main(int argc, char **argv)
 
             std::cout << "Parsing..." << std::endl;
 
-            parse_result result_parsing = parse(token_result.value(), file_contents, std::cout);
+            parse_result<statement> result_parsing = parse(token_result.value(), file_contents, std::cout);
 
-            write_expression(result_parsing.ast);
+            write_ast_node(result_parsing.ast);
 
             if (result_parsing.error)
             {

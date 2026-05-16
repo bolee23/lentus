@@ -141,6 +141,11 @@ std::string token::to_string(const std::string &source) const
     return source.substr(start_position, end_position - start_position);
 }
 
+std::string token_type_to_string(token_type type)
+{
+    return std::string(magic_enum::enum_name(type));
+}
+
 token::~token()
 {
     switch (type)

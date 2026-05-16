@@ -2,7 +2,8 @@
 #define LENTUS_PARSER_HPP
 
 #include "token.hpp"
-#include "ast.hpp"
+#include "statement.hpp"
+#include "expression.hpp"
 
 /** Represents a line of source code (for error reporting) */
 struct source_line
@@ -11,9 +12,10 @@ struct source_line
     int start_position;
 };
 
+template <typename T>
 struct parse_result
 {
-    expression *ast;
+    T *ast;
     bool error;
 };
 
@@ -29,14 +31,14 @@ struct parser_data
 };
 
 /**
- * Parses a vector of tokens into an abstract syntax tree (AST) represented by an expression pointer. The AST can then be evaluated by the execution context.
+ * Parses a vector of tokens into an abstract syntax tree (AST).
  * @param tokens vector of tokens to parse
  * @param source_string the original source code string (for error reporting)
  * @param error_stream stream to write error messages to
- * @return pointer to the root of the AST, or nullptr if a syntax error is found
+ * @return Parse result containing the AST and whether an error was found during parsing
  */
-parse_result parse(const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream);
+parse_result<statement> parse(const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream);
 
-void write_expression(expression *expr);
+void write_ast_node(ast_node *node);
 
 #endif

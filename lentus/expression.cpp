@@ -1,4 +1,4 @@
-#include "ast.hpp"
+#include "expression.hpp"
 #include "program.hpp"
 
 unary_expression::unary_expression(unary_expression &&other)
@@ -312,4 +312,69 @@ variable *binary_expression::evaluate(program &program) const
 variable *grouping_expression::evaluate(program &program) const
 {
     return this->inner_expression->evaluate(program);
+}
+
+assignment_expression &assignment_expression::operator=(assignment_expression &&other)
+{
+    if (this != &other)
+    {
+        identifier = std::move(other.identifier);
+        op = other.op;
+        value = other.value;
+        other.value = nullptr;
+    }
+    return *this;
+}
+
+assignment_expression::assignment_expression(assignment_expression &&other)
+{
+    identifier = std::move(other.identifier);
+    op = other.op;
+    value = other.value;
+    other.value = nullptr;
+}
+
+std::string assignment_expression::to_string() const
+{
+    return op.to_string() + "[" + identifier + ", " + value->to_string() + "]";
+}
+
+assignment_expression::~assignment_expression()
+{
+    delete value;
+}
+
+variable *assignment_expression::evaluate(program &program) const
+{
+    return nullptr; // TODO
+}
+
+identifier_expression::identifier_expression(identifier_expression &&other)
+{
+    identifier = std::move(other.identifier);
+    this->line_number = other.line_number;
+    this->start_position = other.start_position;
+    this->end_position = other.end_position;
+}
+
+identifier_expression &identifier_expression::operator=(identifier_expression &&other)
+{
+    if (this != &other)
+    {
+        identifier = std::move(other.identifier);
+        this->line_number = other.line_number;
+        this->start_position = other.start_position;
+        this->end_position = other.end_position;
+    }
+    return *this;
+}
+
+variable *identifier_expression::evaluate(program &program) const
+{
+    return nullptr; // TODO
+}
+
+std::string identifier_expression::to_string() const
+{
+    return identifier;
 }
