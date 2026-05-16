@@ -78,13 +78,13 @@ parse_result parse_left_associative(parser_data &data, F function, std::vector<t
 {
     parse_result result = function(data);
     bool error = result.error;
-    ast_node *left = result.ast;
+    expression *left = result.ast;
 
     while (match_and_consume(data, token_types))
     {
         token op = data.tokens[data.position - 1];
         parse_result right_result = function(data);
-        ast_node *right = right_result.ast;
+        expression *right = right_result.ast;
         error |= right_result.error;
         left = new binary_expression(op, left, right);
     }
@@ -99,7 +99,7 @@ parse_result parse_primary(parser_data &data)
     if (data.position >= (int)data.tokens.size())
     {
         write_error_message(data, "Unexpected end of input");
-        return {new error_node(), true};
+        return {new error_expression(), true};
     }
     const token &current = data.tokens[data.position];
     int line_number = current.get_line_number();
@@ -127,7 +127,7 @@ parse_result parse_primary(parser_data &data)
     {
         data.position++;
         parse_result other_result = parse_expression(data);
-        ast_node *other_expression = other_result.ast;
+        expression *other_expression = other_result.ast;
         bool error = other_result.error;
 
         // Expect right bracket to match left bracket
@@ -142,7 +142,7 @@ parse_result parse_primary(parser_data &data)
                 write_error_message(data, "')' expected, got \"" + data.tokens[data.position].to_string(data.source_string) + "\" instead");
             }
             delete other_expression;
-            return {new error_node(), true};
+            return {new error_expression(), true};
         }
         int right_bracket_end_position = data.tokens[data.position - 1].get_end_position();
 
@@ -151,7 +151,7 @@ parse_result parse_primary(parser_data &data)
     default:
     {
         write_error_message(data, std::string("Unexpected token \"") + current.to_string(data.source_string) + "\"");
-        return {new error_node(), true};
+        return {new error_expression(), true};
         break;
     }
     }
@@ -163,7 +163,7 @@ parse_result parse_unary(parser_data &data)
     {
         token op = data.tokens[data.position - 1];
         parse_result operand_result = parse_unary(data);
-        ast_node *right = operand_result.ast;
+        expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
     }
@@ -257,7 +257,7 @@ parse_result parse(const std::vector<token> &tokens, const std::string &source_s
     return result;
 }
 
-void write_expression(ast_node *expr)
+void write_expression(expression *expr)
 {
     std::cout << expr->to_string() << std::endl;
 }

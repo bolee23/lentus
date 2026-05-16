@@ -125,7 +125,7 @@ literal_expression::~literal_expression()
 {
 }
 
-variable *error_node::evaluate(program &program) const
+variable *error_expression::evaluate(program &program) const
 {
     throw new lentus_runtime_exception("Tried to evaluate error_node");
 }

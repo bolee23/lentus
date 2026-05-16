@@ -18,21 +18,25 @@ protected:
     int end_position;
 
 public:
-    virtual variable *evaluate(program &program) const = 0;
-
-    virtual ~ast_node() = default;
-
-    virtual std::string to_string() const = 0;
-
     int get_line_number() const { return line_number; }
     int get_start_position() const { return start_position; }
     int get_end_position() const { return end_position; }
 };
 
-class error_node : public ast_node
+class expression : public ast_node
 {
 public:
-    error_node()
+    virtual variable *evaluate(program &program) const = 0;
+
+    virtual ~expression() = default;
+
+    virtual std::string to_string() const = 0;
+};
+
+class error_expression : public expression
+{
+public:
+    error_expression()
     {
         // If an error node exists then it cannot be executed anyway.
         this->line_number = 0;
@@ -40,22 +44,22 @@ public:
         this->end_position = 0;
     }
 
-    error_node(const error_node &other) = delete;
-    error_node &operator=(const error_node &other) = delete;
+    error_expression(const error_expression &other) = delete;
+    error_expression &operator=(const error_expression &other) = delete;
 
     variable *evaluate(program &program) const override;
     std::string to_string() const override { return "<error>"; }
-    ~error_node() override = default;
+    ~error_expression() override = default;
 };
 
-class unary_expression : public ast_node
+class unary_expression : public expression
 {
 private:
     token op;
-    ast_node *operand;
+    expression *operand;
 
 public:
-    unary_expression(const token &op, ast_node *operand) : op(op), operand(operand)
+    unary_expression(const token &op, expression *operand) : op(op), operand(operand)
     {
         this->line_number = op.get_line_number();
         this->start_position = op.get_start_position();
@@ -71,22 +75,22 @@ public:
     variable *evaluate(program &program) const override;
 
     token get_operator() const { return op; }
-    ast_node *get_operand() const { return operand; }
+    expression *get_operand() const { return operand; }
 
     virtual std::string to_string() const override;
 
     ~unary_expression() override;
 };
 
-class binary_expression : public ast_node
+class binary_expression : public expression
 {
 private:
     token op;
-    ast_node *left;
-    ast_node *right;
+    expression *left;
+    expression *right;
 
 public:
-    binary_expression(const token &op, ast_node *left, ast_node *right) : op(op), left(left), right(right)
+    binary_expression(const token &op, expression *left, expression *right) : op(op), left(left), right(right)
     {
         this->line_number = left->get_line_number();
         this->start_position = left->get_start_position();
@@ -102,15 +106,15 @@ public:
     variable *evaluate(program &program) const override;
 
     token get_operator() const { return op; }
-    ast_node *get_left() const { return left; }
-    ast_node *get_right() const { return right; }
+    expression *get_left() const { return left; }
+    expression *get_right() const { return right; }
 
     virtual std::string to_string() const override;
 
     ~binary_expression() override;
 };
 
-class literal_expression : public ast_node
+class literal_expression : public expression
 {
 private:
     variable value;
@@ -144,13 +148,13 @@ public:
     ~literal_expression() override;
 };
 
-class grouping_expression : public ast_node
+class grouping_expression : public expression
 {
 private:
-    ast_node *inner_expression;
+    expression *inner_expression;
 
 public:
-    grouping_expression(ast_node *inner_expression, int line_number, int start_position, int end_position) : inner_expression(inner_expression)
+    grouping_expression(expression *inner_expression, int line_number, int start_position, int end_position) : inner_expression(inner_expression)
     {
         this->line_number = line_number;
         this->start_position = start_position;
@@ -165,7 +169,7 @@ public:
 
     variable *evaluate(program &program) const override;
 
-    ast_node *get_inner_expression() const { return inner_expression; }
+    expression *get_inner_expression() const { return inner_expression; }
 
     virtual std::string to_string() const override;
 

@@ -16,16 +16,16 @@ enum class variable_type : int
     FUNCTION
 };
 
-class ast_node;
+class expression;
 
 class function
 {
 private:
-    ast_node *body;
+    expression *body;
     std::vector<std::string> parameters;
 
 public:
-    function(ast_node *body, std::vector<std::string> &&parameters) : body(body), parameters(parameters) {}
+    function(expression *body, std::vector<std::string> &&parameters) : body(body), parameters(parameters) {}
 
     function(const function &fn) : body(fn.body), parameters(fn.parameters) {}
 };

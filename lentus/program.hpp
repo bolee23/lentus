@@ -36,15 +36,15 @@ public:
 class lentus_runtime_exception : public std::exception
 {
     std::string message;
-    const ast_node *node;
+    const expression *node;
 
 public:
-    lentus_runtime_exception(std::string &message, const ast_node *node = nullptr) : message(message), node(node) {}
-    lentus_runtime_exception(std::string &&message, const ast_node *node = nullptr) : message(std::move(message)), node(node) {}
+    lentus_runtime_exception(std::string &message, const expression *node = nullptr) : message(message), node(node) {}
+    lentus_runtime_exception(std::string &&message, const expression *node = nullptr) : message(std::move(message)), node(node) {}
 
     const char *what() const noexcept { return message.c_str(); }
 
-    const ast_node *get_node() const { return node; }
+    const expression *get_node() const { return node; }
 };
 
 #endif

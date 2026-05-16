@@ -13,7 +13,7 @@ struct source_line
 
 struct parse_result
 {
-    ast_node *ast;
+    expression *ast;
     bool error;
 };
 
@@ -37,6 +37,6 @@ struct parser_data
  */
 parse_result parse(const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream);
 
-void write_expression(ast_node *expr);
+void write_expression(expression *expr);
 
 #endif

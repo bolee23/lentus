@@ -12,7 +12,7 @@ class program_module
 {
 private:
     std::filesystem::path path;
-    ast_node *ast_root;
+    expression *ast_root;
     variable *root_table;
 
 public:

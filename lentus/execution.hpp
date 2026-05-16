@@ -10,7 +10,7 @@ struct stack_frame
 
 struct ast_stack_frame
 {
-    ast_node *node;
+    expression *node;
 };
 
 class execution_context
@@ -21,7 +21,7 @@ private:
     program *program;
 
 public:
-    void execute_node(ast_node *node);
+    void execute_node(expression *node);
     void execute_function(variable *function, std::vector<variable *> &arguments);
     void execute_module(program_module *module);
 };
