@@ -83,7 +83,8 @@ public:
     bool is(variable_type type) const { return this->type == type; }
     std::string get_type_name() const;
 
-    void write_to_string(std::string &str);
+    void write_to_string_recursive(std::string &str);
+    std::string to_string_recursive() const;
     std::string to_string() const;
 
     ~variable();
@@ -101,6 +102,8 @@ public:
     const std::string *get_string() const;
     const std::vector<variable *> *get_list() const;
     const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *get_table() const;
+    std::vector<variable *> *get_list();
+    std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *get_table();
     const function *get_function() const;
     bool get_boolean() const;
 };

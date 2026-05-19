@@ -23,14 +23,19 @@ void write_error_message(parser_data &data, const std::string &message)
 
     data.error_stream << "Error at line " << line_number << ": " << message << std::endl;
     data.error_stream << data.lines[line_number - 1].text << std::endl;
+
+    // Position the arrows
     for (int i = 0; i < current->get_start_position() - line_start_position; i++)
     {
         data.error_stream << ' ';
     }
+
+    // One arrow for each character in the token
     for (int i = current->get_start_position(); i < current->get_end_position(); i++)
     {
         data.error_stream << '^';
     }
+
     data.error_stream << std::endl;
     data.error_found = true;
 }
@@ -78,6 +83,7 @@ bool check(parser_data &data, token_type type)
  * If the current token matches any of the given types, consume it and return true. Otherwise, return false.
  * @param data Parser data
  * @param token_types Token types to check for
+ * @return true if token matches
  */
 bool match_and_consume(parser_data &data, std::vector<token_type> token_types)
 {
@@ -91,6 +97,25 @@ bool match_and_consume(parser_data &data, std::vector<token_type> token_types)
     }
 
     return false;
+}
+
+/**
+ * If the current token matches the given type, consume it and return true. Otherwise, return false.
+ * @param data Parser data
+ * @param token_type Token type
+ * @return true if token matches
+ */
+bool match_and_consume(parser_data &data, token_type type)
+{
+    if (check(data, type))
+    {
+        data.position++;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /**
@@ -158,7 +183,7 @@ parse_result<expression> parse_primary(parser_data &data)
         bool error = other_result.error;
 
         // Expect right bracket to match left bracket
-        if (!match_and_consume(data, {token_type::RIGHT_BRACKET}))
+        if (!match_and_consume(data, token_type::RIGHT_BRACKET))
         {
             write_expectation_error_message(data, "'}' here");
             delete other_expression;
@@ -173,11 +198,49 @@ parse_result<expression> parse_primary(parser_data &data)
         return {new identifier_expression(*current.get_identifier_name(), line_number, start_position, end_position), false};
     default:
     {
-        write_error_message(data, std::string("Unexpected token \"") + current.to_string(data.source_string) + "\"");
+        data.position++; // Don't keep parsing the same unexpected token
+        // write_error_message(data, std::string("Unexpected token \"") + current.to_string(data.source_string) + "\"");
         return {new error_expression(), true};
         break;
     }
     }
+}
+
+/**
+ * Parses a function call
+ */
+parse_result<expression> parse_call(parser_data &data)
+{
+    parse_result<expression> result = parse_primary(data);
+    expression *expr = result.ast;
+    bool error = result.error;
+
+    while (match_and_consume(data, token_type::LEFT_BRACKET))
+    {
+        std::vector<expression *> arguments;
+
+        if (!match_and_consume(data, token_type::RIGHT_BRACKET)) // Call with arguments
+        {
+            // Add at least one argument, more if commas are observed
+            do
+            {
+                parse_result<expression> arg_result = parse_expression(data);
+                error |= arg_result.error;
+                arguments.push_back(arg_result.ast);
+            } while (match_and_consume(data, token_type::COMMA));
+
+            if (!match_and_consume(data, token_type::RIGHT_BRACKET))
+            {
+                write_expectation_error_message(data, "')' after function call");
+                data.position++;
+                return {new error_expression(), true};
+            }
+        }
+        
+        expr = new call_expression(expr, std::move(arguments), expr->get_line_number(), expr->get_start_position(), data.tokens[data.position - 1].get_end_position());
+    }
+
+    return {expr, error};
 }
 
 parse_result<expression> parse_unary(parser_data &data)
@@ -191,7 +254,7 @@ parse_result<expression> parse_unary(parser_data &data)
         return {new unary_expression(op, right), operand_result.error};
     }
 
-    return parse_primary(data);
+    return parse_call(data);
 }
 
 parse_result<expression> parse_factor(parser_data &data)
@@ -226,14 +289,14 @@ parse_result<expression> parse_logical_or(parser_data &data)
 
 parse_result<expression> parse_assignment(parser_data &data)
 {
-    if (match_and_consume(data, {token_type::IDENTIFIER}))
+    if (match_and_consume(data, token_type::IDENTIFIER))
     {
         const token &identifier_token = data.tokens[data.position - 1];
         const std::string *identifier = identifier_token.get_identifier_name();
         int line_number = identifier_token.get_line_number();
         int start_position = identifier_token.get_start_position();
 
-        if (match_and_consume(data, {token_type::ASSIGN}))
+        if (match_and_consume(data, token_type::ASSIGN))
         {
             token op = data.tokens[data.position - 1];
             parse_result<expression> value_result = parse_assignment(data);
@@ -286,20 +349,20 @@ std::vector<source_line> split_lines(const std::string &source_string)
 
 parse_result<statement> parse_declaration(parser_data &data)
 {
-    if (match_and_consume(data, {token_type::IDENTIFIER}))
+    if (match_and_consume(data, token_type::IDENTIFIER))
     {
         const token &identifier_token = data.tokens[data.position - 1];
         const std::string *identifier = identifier_token.get_identifier_name();
         int line_number = identifier_token.get_line_number();
         int start_position = identifier_token.get_start_position();
 
-        if (match_and_consume(data, {token_type::ASSIGN}))
+        if (match_and_consume(data, token_type::ASSIGN))
         {
             parse_result<expression> value_result = parse_expression(data);
             expression *value = value_result.ast;
             bool error = value_result.error;
 
-            if (!match_and_consume(data, {token_type::END_STATEMENT}))
+            if (!match_and_consume(data, token_type::END_STATEMENT))
             {
                 write_expectation_error_message(data, "';' here");
                 delete value;
@@ -310,7 +373,7 @@ parse_result<statement> parse_declaration(parser_data &data)
         }
         else
         {
-            if (!match_and_consume(data, {token_type::END_STATEMENT}))
+            if (!match_and_consume(data, token_type::END_STATEMENT))
             {
                 write_expectation_error_message(data, "';' here");
                 return {new error_statement(), true};
@@ -330,7 +393,7 @@ parse_result<statement> parse_declaration(parser_data &data)
 parse_result<statement> parse_expression_statement(parser_data &data)
 {
     parse_result<expression> expr_result = parse_expression(data);
-    if (match_and_consume(data, {token_type::END_STATEMENT}))
+    if (match_and_consume(data, token_type::END_STATEMENT))
     {
         return {new expression_statement(expr_result.ast), expr_result.error};
     }
@@ -343,7 +406,7 @@ parse_result<statement> parse_expression_statement(parser_data &data)
 
 parse_result<statement> parse_statement(parser_data &data)
 {
-    if (match_and_consume(data, {token_type::VAR}))
+    if (match_and_consume(data, token_type::VAR))
     {
         return parse_declaration(data);
     }

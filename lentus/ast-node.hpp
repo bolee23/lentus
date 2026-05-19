@@ -4,7 +4,7 @@
 #include <string>
 #include "variable.hpp"
 
-class program;
+class execution_context;
 
 class ast_node
 {
@@ -22,7 +22,7 @@ public:
 
     virtual ~ast_node() = default;
 
-    virtual variable *evaluate(program &program) const = 0;
+    virtual variable *evaluate(execution_context &execution) const = 0;
 };
 
 #endif

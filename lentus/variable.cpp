@@ -1,5 +1,6 @@
 #include "variable.hpp"
 #include "magic_enum.hpp"
+#include <cmath>
 
 std::size_t variable_hasher::operator()(const variable *var) const
 {
@@ -405,6 +406,30 @@ const std::unordered_map<variable *, variable *, variable_hasher, variable_equal
     }
 }
 
+std::vector<variable *> *variable::get_list()
+{
+    if (type == variable_type::LIST)
+    {
+        return list;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *variable::get_table()
+{
+    if (type == variable_type::TABLE)
+    {
+        return table;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 const function *variable::get_function() const
 {
     if (type == variable_type::FUNCTION)
@@ -434,7 +459,7 @@ std::string variable::get_type_name() const
     return std::string(magic_enum::enum_name(type));
 }
 
-void variable::write_to_string(std::string &str)
+void variable::write_to_string_recursive(std::string &str)
 {
     switch (type)
     {
@@ -467,7 +492,7 @@ void variable::write_to_string(std::string &str)
                 str += ", ";
             }
             variable *var = (*list)[i];
-            var->write_to_string(str);
+            var->write_to_string_recursive(str);
         }
         break;
     }
@@ -486,9 +511,9 @@ void variable::write_to_string(std::string &str)
                 first = false;
             }
 
-            entry.first->write_to_string(str);
+            entry.first->write_to_string_recursive(str);
             str += " = ";
-            entry.second->write_to_string(str);
+            entry.second->write_to_string_recursive(str);
         }
         str += "}";
         break;
@@ -502,7 +527,7 @@ void variable::write_to_string(std::string &str)
     }
 }
 
-std::string variable::to_string() const
+std::string variable::to_string_recursive() const
 {
     switch (type)
     {
@@ -518,7 +543,14 @@ std::string variable::to_string() const
             return "false";
         }
     case variable_type::NUMBER:
-        return std::to_string(number);
+        if (std::floor(number) == number)
+        {
+            return std::to_string((long)number);
+        }
+        else
+        {
+            return std::to_string(number);
+        }
     case variable_type::STRING:
         return "\"" + *string + "\"";
     case variable_type::LIST:
@@ -531,7 +563,7 @@ std::string variable::to_string() const
                 str += ", ";
             }
             variable *var = (*list)[i];
-            var->write_to_string(str);
+            var->write_to_string_recursive(str);
         }
         str += "]";
         return str;
@@ -551,12 +583,53 @@ std::string variable::to_string() const
                 first = false;
             }
 
-            entry.first->write_to_string(str);
+            entry.first->write_to_string_recursive(str);
             str += " = ";
-            entry.second->write_to_string(str);
+            entry.second->write_to_string_recursive(str);
         }
         str += "}";
         return str;
+    }
+    case variable_type::FUNCTION:
+        return "<function @" + std::to_string((size_t)this->fn) + ">";
+    default:
+        return "<error>";
+    }
+}
+
+std::string variable::to_string() const
+{
+    switch (type)
+    {
+    case variable_type::NONE:
+        return "none";
+    case variable_type::BOOLEAN:
+        if (boolean)
+        {
+            return "true";
+        }
+        else
+        {
+            return "false";
+        }
+    case variable_type::NUMBER:
+        if (std::floor(number) == number)
+        {
+            return std::to_string((long)number);
+        }
+        else
+        {
+            return std::to_string(number);
+        }
+    case variable_type::STRING:
+        return *string;
+    case variable_type::LIST:
+    {
+        return "<list @" + std::to_string((size_t)this->list) + ">";
+    }
+    case variable_type::TABLE:
+    {
+        return "<table @" + std::to_string((size_t)this->table) + ">";
     }
     case variable_type::FUNCTION:
         return "<function @" + std::to_string((size_t)this->fn) + ">";

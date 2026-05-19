@@ -18,6 +18,7 @@ enum class token_type : int
     MULTIPLY,      /** * */
     DIVIDE,        /** / */
     DOT,           /** . */
+    COMMA,         /** , */
 
     // Brackets
     LEFT_BRACKET,  /** ( */

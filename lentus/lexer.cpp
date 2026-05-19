@@ -11,6 +11,7 @@ const token_trie_node token_trie = {
         {'*', token_trie_node(token_type::MULTIPLY, {{'=', token_trie_node(token_type::MULTIPLY_ASSIGN)}})},
         {'/', token_trie_node(token_type::DIVIDE, {{'=', token_trie_node(token_type::DIVIDE_ASSIGN)}})},
         {'.', token_trie_node(token_type::DOT)},
+        {',', token_trie_node(token_type::COMMA)},
 
         {'(', token_trie_node(token_type::LEFT_BRACKET)},
         {')', token_trie_node(token_type::RIGHT_BRACKET)},

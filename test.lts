@@ -1,5 +1,10 @@
-var x = 2 + 2;
-var y;
-var z = "hi";
-y = x + x * 2;
-a = b = c = d; // should go from right to left
+var hello = "Hello";
+var world = "World!";
+print(hello + " " + world);
+
+var x = 3;
+var y = 4;
+var result;
+result = x * y;
+
+print("result: ", x, " * ", y, " = ", result);

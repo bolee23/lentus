@@ -1,4 +1,5 @@
 #include "statement.hpp"
+#include "execution.hpp"
 
 declaration_statement::declaration_statement(declaration_statement &&other)
 {
@@ -122,31 +123,48 @@ std::string sequence_statement::to_string() const
     return result;
 }
 
-variable *error_statement::evaluate(program &program) const
+variable *error_statement::evaluate(execution_context &execution) const
 {
-    return nullptr;
+    throw lentus_runtime_exception("Cannot evaluate error_node", this);
 }
 
-variable *declaration_statement::evaluate(program &program) const
+variable *expression_statement::evaluate(execution_context &execution) const
 {
-    return nullptr; // TODO
+    return expr->evaluate(execution);
 }
 
-variable *expression_statement::evaluate(program &program) const
-{
-    return expr->evaluate(program);
-}
-
-variable *sequence_statement::evaluate(program &program) const
+variable *sequence_statement::evaluate(execution_context &execution) const
 {
     variable *result = nullptr;
+    execution.push();
+
     for (statement *stmt : statements)
     {
-        variable *stmt_result = stmt->evaluate(program);
-        if (stmt_result)
+        result = stmt->evaluate(execution);
+    }
+
+    execution.pop();
+
+    return result;
+}
+
+variable *declaration_statement::evaluate(execution_context &execution) const
+{
+    stack_frame &frame = execution.peek();
+    if (frame.local_variables.contains(identifier))
+    { // Already defined in this scope
+        throw lentus_runtime_exception("Variable " + identifier + " already defined in this scope", this);
+    }
+    else
+    {
+        if (value == nullptr)
         {
-            result = stmt_result;
+            frame.local_variables[identifier] = execution.get_program()->get_none_variable();
+        }
+        else
+        {
+            frame.local_variables[identifier] = value->evaluate(execution);
         }
     }
-    return result;
+    return frame.local_variables[identifier];
 }

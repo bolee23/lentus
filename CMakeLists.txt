@@ -26,6 +26,8 @@ set(LENTUS_SOURCES
   lentus/statement.cpp
   lentus/parser.cpp
   lentus/program.cpp
+  lentus/program-module.cpp
+  lentus/execution.cpp
 )
 
 # Lentus executable

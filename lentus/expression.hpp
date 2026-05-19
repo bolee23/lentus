@@ -27,7 +27,7 @@ public:
     error_expression(const error_expression &other) = delete;
     error_expression &operator=(const error_expression &other) = delete;
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
     std::string to_string() const override { return "<error>"; }
     ~error_expression() override = default;
 };
@@ -52,7 +52,7 @@ public:
     unary_expression(unary_expression &&other);
     unary_expression &operator=(unary_expression &&other);
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
 
     token get_operator() const { return op; }
     expression *get_operand() const { return operand; }
@@ -83,7 +83,7 @@ public:
     binary_expression(binary_expression &&other);
     binary_expression &operator=(binary_expression &&other);
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
 
     token get_operator() const { return op; }
     expression *get_left() const { return left; }
@@ -119,7 +119,7 @@ public:
     literal_expression(literal_expression &&other);
     literal_expression &operator=(literal_expression &&other);
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
 
     variable get_value() const { return value; }
 
@@ -147,7 +147,7 @@ public:
     grouping_expression(grouping_expression &&other);
     grouping_expression &operator=(grouping_expression &&other);
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
 
     expression *get_inner_expression() const { return inner_expression; }
 
@@ -184,7 +184,7 @@ public:
     assignment_expression(assignment_expression &&other);
     assignment_expression &operator=(assignment_expression &&other);
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
 
     const std::string &get_identifier() const { return identifier; }
     token get_operator() const { return op; }
@@ -220,11 +220,39 @@ public:
     identifier_expression(identifier_expression &&other);
     identifier_expression &operator=(identifier_expression &&other);
 
-    variable *evaluate(program &program) const override;
+    variable *evaluate(execution_context &execution) const override;
     const std::string &get_identifier() const { return identifier; }
 
     virtual std::string to_string() const override;
     ~identifier_expression() override = default;
+};
+
+class call_expression : public expression
+{
+private:
+    expression *callee;
+    std::vector<expression *> arguments;
+
+public:
+    call_expression(expression *callee, std::vector<expression *> &&arguments, int line_number, int start_position, int end_position) : callee(callee), arguments(std::move(arguments))
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    call_expression(const call_expression &other) = delete;
+    call_expression &operator=(const call_expression &other) = delete;
+
+    call_expression(call_expression &&other);
+    call_expression &operator=(call_expression &&other);
+
+    variable *evaluate(execution_context &execution) const override;
+    const expression *get_callee() const { return callee; }
+    const std::vector<expression *> &get_arguments() const { return arguments; }
+
+    virtual std::string to_string() const override;
+    ~call_expression() override = default;
 };
 
 #endif
