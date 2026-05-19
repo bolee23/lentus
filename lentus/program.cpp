@@ -78,7 +78,7 @@ variable *program::create_empty_table()
     return add_variable(new variable(std::unordered_map<variable *, variable *, variable_hasher, variable_equal>()));
 }
 
-std::optional<program_module *> program::load_module(const std::filesystem::path &path, std::ostream &error_stream)
+std::optional<program_module *> program::load_module(const std::filesystem::path &path, std::ostream &error_stream, bool lp_debug)
 {
     // Check if already loaded, return it
     if (modules.contains(path))
@@ -93,7 +93,7 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     }
 
     // Create module
-    std::optional<program_module *> opt = create_module(path, error_stream, this->create_empty_table());
+    std::optional<program_module *> opt = create_module(path, error_stream, this->create_empty_table(), lp_debug);
     if (!opt)
     {
         return std::nullopt;

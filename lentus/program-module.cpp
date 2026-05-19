@@ -5,7 +5,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 
-std::optional<program_module*> create_module(const std::filesystem::path &path, std::ostream &error_stream, variable *global_table)
+std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, variable *global_table, bool lp_debug)
 {
     // Read file
     std::ifstream input_stream(path);
@@ -19,11 +19,19 @@ std::optional<program_module*> create_module(const std::filesystem::path &path, 
         return std::nullopt;
     }
 
-    write_tokens(token_result.value(), std::cout);
+    if (lp_debug)
+    {
+        std::cout << "Tokens:" << std::endl;
+        write_tokens(token_result.value(), std::cout);
+    }
 
     parse_result<statement> result_parsing = parse(token_result.value(), file_contents, error_stream);
 
-    write_ast_node(result_parsing.ast);
+    if (lp_debug)
+    {
+        std::cout << "AST:" << std::endl;
+        write_ast_node(result_parsing.ast);
+    }
 
     if (result_parsing.error)
     {
@@ -54,6 +62,7 @@ program_module &program_module::operator=(program_module &&prgm_module)
         prgm_module.root_statement = nullptr;
         prgm_module.global_table = nullptr;
     }
+    return *this;
 }
 
 program_module::~program_module()

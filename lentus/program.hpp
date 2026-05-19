@@ -76,9 +76,10 @@ public:
      *
      * @param path The path to the module to load
      * @param error_stream The stream to write error messages to
+     * @param debug Whether to print debug messages during lexing and parsing
      * @return The module, or std::nullopt if there was an error during loading or execution
      */
-    std::optional<program_module *> load_module(const std::filesystem::path &path, std::ostream &error_stream);
+    std::optional<program_module *> load_module(const std::filesystem::path &path, std::ostream &error_stream, bool lp_debug = false);
 
     /**
      * Executes an anonymous module with the given source code. This is used for executing code from the REPL.

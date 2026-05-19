@@ -47,6 +47,14 @@ public:
     variable *get_global_table() const { return global_table; };
 };
 
-std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, variable *global_table);
+/**
+ * Creates a module from the given path. Does not execute it.
+ * @param path The path to the module to create
+ * @param error_stream The stream to write error messages to
+ * @param global_table The global table to use for the module.
+ * @param lp_debug Whether to print debug messages during lexing and parsing
+ * @return The created module, or std::nullopt if creation failed
+ */
+std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, variable *global_table, bool lp_debug = false);
 
 #endif

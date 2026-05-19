@@ -123,7 +123,7 @@ std::string sequence_statement::to_string() const
     return result;
 }
 
-variable *error_statement::evaluate(execution_context &execution) const
+variable *error_statement::evaluate([[maybe_unused]] execution_context &execution) const
 {
     throw lentus_runtime_exception("Cannot evaluate error_node", this);
 }

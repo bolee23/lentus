@@ -222,7 +222,7 @@ std::string call_expression::to_string() const
     return str;
 }
 
-variable *error_expression::evaluate(execution_context &execution) const
+variable *error_expression::evaluate([[maybe_unused]] execution_context &execution) const
 {
     throw new lentus_runtime_exception("Tried to evaluate error_node");
 }
