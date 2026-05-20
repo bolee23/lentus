@@ -2,12 +2,12 @@
 #define LENTUS_EXECUTION_HPP
 
 #include "program.hpp"
-#include <unordered_map>
+#include "variable.hpp"
 
 struct stack_frame
 {
     program_module *current_module;
-    std::unordered_map<std::string, variable *> local_variables;
+    lentus_table *local_variables;
 };
 
 class execution_context
@@ -17,11 +17,11 @@ private:
     program *prgm;
 
 public:
-    execution_context(program *prgm) : prgm(prgm) {}
+    execution_context(program *prgm) : stack(), prgm(prgm) {}
 
-    std::optional<variable *> execute_function(variable *function, std::vector<variable *> &arguments);
+    std::optional<reference> execute_function(variable *function, std::vector<variable *> &arguments);
 
-    std::optional<variable *> execute_module(program_module *module);
+    std::optional<reference> execute_module(program_module *module);
 
     program *get_program() { return prgm; }
     const program *get_program() const { return prgm; }
@@ -31,13 +31,13 @@ public:
      * @param current_module the module to push
      * @return the new stack frame
      */
-    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module); }
+    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module, new lentus_table()); }
 
     /**
      * Push a new stack frame
      * @return the new stack frame
      */
-    stack_frame &push() { return stack.emplace_back(peek().current_module); }
+    stack_frame &push() { return stack.emplace_back(peek().current_module, new lentus_table()); }
 
     /**
      * Get the current stack frame
@@ -85,19 +85,9 @@ public:
      * The search stops when another module is encountered in the call stack, or when the stack has been exhausted.
      * Before stopping, the method will also search for the module's global variable table
      * @param identifier Identifier to search for
-     * @return The variable pointer. nullptr if not found.
+     * @return Modifiable reference to the variable. nullopt if not found.
      */
-    variable *get_variable(const std::string &identifier);
-
-    /**
-     * Searches down the stack for the nearest definition of a local or global variable with a given identifier
-     * The search stops when another module is encountered in the call stack, or when the stack has been exhausted.
-     * Before stopping, the method will also search for the module's global variable table
-     * @param identifier Identifier to search for
-     * @param value Value to set variable to.
-     * @return true if the variable set was successed, false if not found
-     */
-    bool set_variable(const std::string &identifier, variable *value);
+    std::optional<reference> get_variable(const std::string &identifier);
 };
 
 #endif

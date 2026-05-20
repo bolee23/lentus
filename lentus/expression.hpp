@@ -27,7 +27,7 @@ public:
     error_expression(const error_expression &other) = delete;
     error_expression &operator=(const error_expression &other) = delete;
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     std::string to_string() const override { return "<error>"; }
     ~error_expression() override = default;
 };
@@ -52,7 +52,7 @@ public:
     unary_expression(unary_expression &&other);
     unary_expression &operator=(unary_expression &&other);
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
 
     token get_operator() const { return op; }
     expression *get_operand() const { return operand; }
@@ -83,7 +83,7 @@ public:
     binary_expression(binary_expression &&other);
     binary_expression &operator=(binary_expression &&other);
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
 
     token get_operator() const { return op; }
     expression *get_left() const { return left; }
@@ -119,7 +119,7 @@ public:
     literal_expression(literal_expression &&other);
     literal_expression &operator=(literal_expression &&other);
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
 
     variable get_value() const { return value; }
 
@@ -147,51 +147,13 @@ public:
     grouping_expression(grouping_expression &&other);
     grouping_expression &operator=(grouping_expression &&other);
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
 
     expression *get_inner_expression() const { return inner_expression; }
 
     virtual std::string to_string() const override;
 
     ~grouping_expression() override;
-};
-
-class assignment_expression : public expression
-{
-private:
-    std::string identifier;
-    token op;
-    expression *value;
-
-public:
-    assignment_expression(const std::string &identifier, token op, expression *value, int line_number, int start_position, int end_position) : identifier(identifier), op(op), value(value)
-    {
-        this->line_number = line_number;
-        this->start_position = start_position;
-        this->end_position = end_position;
-    }
-
-    assignment_expression(std::string &&identifier, token op, expression *value, int line_number, int start_position, int end_position) : identifier(std::move(identifier)), op(op), value(value)
-    {
-        this->line_number = line_number;
-        this->start_position = start_position;
-        this->end_position = end_position;
-    }
-
-    assignment_expression(const assignment_expression &other) = delete;
-    assignment_expression &operator=(const assignment_expression &other) = delete;
-
-    assignment_expression(assignment_expression &&other);
-    assignment_expression &operator=(assignment_expression &&other);
-
-    variable *evaluate(execution_context &execution) const override;
-
-    const std::string &get_identifier() const { return identifier; }
-    token get_operator() const { return op; }
-    expression *get_value() const { return value; }
-    virtual std::string to_string() const override;
-
-    ~assignment_expression() override;
 };
 
 class identifier_expression : public expression
@@ -220,7 +182,7 @@ public:
     identifier_expression(identifier_expression &&other);
     identifier_expression &operator=(identifier_expression &&other);
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     const std::string &get_identifier() const { return identifier; }
 
     virtual std::string to_string() const override;
@@ -247,7 +209,7 @@ public:
     call_expression(call_expression &&other);
     call_expression &operator=(call_expression &&other);
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     const expression *get_callee() const { return callee; }
     const std::vector<expression *> &get_arguments() const { return arguments; }
 

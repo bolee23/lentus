@@ -5,7 +5,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 
-std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, variable *global_table, bool lp_debug)
+std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, lentus_table *global_table, bool lp_debug)
 {
     // Read file
     std::ifstream input_stream(path);

@@ -123,19 +123,19 @@ std::string sequence_statement::to_string() const
     return result;
 }
 
-variable *error_statement::evaluate([[maybe_unused]] execution_context &execution) const
+reference error_statement::evaluate([[maybe_unused]] execution_context &execution) const
 {
     throw lentus_runtime_exception("Cannot evaluate error_node", this);
 }
 
-variable *expression_statement::evaluate(execution_context &execution) const
+reference expression_statement::evaluate(execution_context &execution) const
 {
     return expr->evaluate(execution);
 }
 
-variable *sequence_statement::evaluate(execution_context &execution) const
+reference sequence_statement::evaluate(execution_context &execution) const
 {
-    variable *result = nullptr;
+    reference result;
     execution.push();
 
     for (statement *stmt : statements)
@@ -148,10 +148,10 @@ variable *sequence_statement::evaluate(execution_context &execution) const
     return result;
 }
 
-variable *declaration_statement::evaluate(execution_context &execution) const
+reference declaration_statement::evaluate(execution_context &execution) const
 {
     stack_frame &frame = execution.peek();
-    if (frame.local_variables.contains(identifier))
+    if (frame.local_variables->contains(identifier))
     { // Already defined in this scope
         throw lentus_runtime_exception("Variable " + identifier + " already defined in this scope", this);
     }
@@ -159,12 +159,12 @@ variable *declaration_statement::evaluate(execution_context &execution) const
     {
         if (value == nullptr)
         {
-            frame.local_variables[identifier] = execution.get_program()->get_none_variable();
+            frame.local_variables->operator[](identifier) = variable();
         }
         else
         {
-            frame.local_variables[identifier] = value->evaluate(execution);
+            frame.local_variables->operator[](identifier) = *value->evaluate(execution);
         }
     }
-    return frame.local_variables[identifier];
+    return frame.local_variables->operator[](identifier);
 }

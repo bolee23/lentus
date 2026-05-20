@@ -13,14 +13,8 @@ class program
 {
 private:
     std::unordered_map<std::filesystem::path, program_module *> modules;
-    std::vector<variable *> variables; /** List of all variables in the program */
+    std::vector<variable_block *> variable_blocks; /** List of all dynamically allocated variable_blocks in the program */
     anonymous_module anon_module;
-    variable *add_variable(variable *var);
-
-    // Preset variables
-    variable *none_variable;
-    variable *true_variable;
-    variable *false_variable;
 
 public:
     program();
@@ -31,42 +25,28 @@ public:
     program &operator=(const program &prog) = delete;
     program &operator=(program &&prog);
 
-    variable *add_variable(const variable &var);
-    variable *add_variable(variable &&var);
-
-    variable *create_variable(bool value);
-    variable *create_variable(double value);
-    variable *create_variable(const std::string &value);
-    variable *create_variable(std::string &&value);
-    variable *create_variable(const std::vector<variable *> &value);
-    variable *create_variable(std::vector<variable *> &&value);
-    variable *create_variable(const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &value);
-    variable *create_variable(std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &&value);
-    variable *create_function(const function *value);
-
     /**
-     * @return the pointer to the none variable
+     * If the variable has a dynamically allocated variable_block,
+     * track it so that it can be deallocated when no longer in use.
+     * @param var The variable to track
+     * @return The same variable
      */
-    variable *get_none_variable() { return none_variable; }
+    variable track_variable(variable var);
 
-    /**
-     * @return the pointer to the true variable
-     */
-    variable *get_true_variable() { return true_variable; }
+    variable track(lentus_string &&str);
+    variable track(const lentus_string &str);
+    variable track(lentus_string *ptr);
 
-    /**
-     * @return the pointer to the false variable
-     */
-    variable *get_false_variable() { return false_variable; }
+    variable track(lentus_list &&list);
+    variable track(const lentus_list &list);
+    variable track(lentus_list *ptr);
 
-    /**
-     * @param value Boolean value
-     * @return a pointer to a true or false variable
-     */
-    variable *get_boolean_variable(bool value) { return value ? true_variable : false_variable; }
+    variable track(lentus_table &&table);
+    variable track(const lentus_table &table);
+    variable track(lentus_table *ptr);
 
-    variable *create_empty_list();
-    variable *create_empty_table();
+    lentus_list *create_empty_list();
+    lentus_table *create_empty_table();
 
     ~program();
 

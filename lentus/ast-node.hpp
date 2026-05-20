@@ -22,7 +22,7 @@ public:
 
     virtual ~ast_node() = default;
 
-    virtual variable *evaluate(execution_context &execution) const = 0;
+    virtual reference evaluate(execution_context &execution) const = 0;
 };
 
 #endif

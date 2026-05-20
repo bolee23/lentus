@@ -13,15 +13,15 @@ class program_module
 private:
     std::filesystem::path path;
     statement *root_statement;
-    variable *global_table; /** Global table contains only the module's variables/functions that are marked with 'export' */
+    lentus_table *global_table; /** Global table contains only the module's variables/functions that are marked with 'export' */
 
 public:
-    program_module(const std::filesystem::path &path, statement *root_statement, variable *global_table) : path(path), root_statement(root_statement), global_table(global_table) {}
+    program_module(const std::filesystem::path &path, statement *root_statement, lentus_table *global_table) : path(path), root_statement(root_statement), global_table(global_table) {}
 
-    variable *get_global_table() const { return global_table; }
+    lentus_table *get_global_table() const { return global_table; }
 
     std::filesystem::path get_path() const { return path; }
-    const statement* get_root_statement() const { return root_statement; }
+    const statement *get_root_statement() const { return root_statement; }
 
     program_module(const program_module &prgm_module) = delete;
     program_module(program_module &&prgm_module);
@@ -39,12 +39,12 @@ public:
 class anonymous_module
 {
 private:
-    variable *global_table;
+    lentus_table *global_table;
 
 public:
-    anonymous_module(variable *global_table) : global_table(global_table) {}
+    anonymous_module(lentus_table *global_table) : global_table(global_table) {}
 
-    variable *get_global_table() const { return global_table; };
+    lentus_table *get_global_table() const { return global_table; };
 };
 
 /**
@@ -55,6 +55,6 @@ public:
  * @param lp_debug Whether to print debug messages during lexing and parsing
  * @return The created module, or std::nullopt if creation failed
  */
-std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, variable *global_table, bool lp_debug = false);
+std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, lentus_table *global_table, bool lp_debug = false);
 
 #endif

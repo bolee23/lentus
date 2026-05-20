@@ -2,18 +2,18 @@
 #include "magic_enum.hpp"
 #include <cmath>
 
-std::size_t variable_hasher::operator()(const variable *var) const
+std::size_t variable_hasher::operator()(const variable &var) const
 {
-    switch (var->get_type())
+    switch (var.get_type())
     {
     case variable_type::NONE:
         return 0;
     case variable_type::BOOLEAN:
-        return std::hash<bool>()(var->get_boolean()) + 1;
+        return std::hash<bool>()(var.get_boolean()) + 1;
     case variable_type::NUMBER:
-        return std::hash<double>()(var->get_number());
+        return std::hash<double>()(var.get_number());
     case variable_type::STRING:
-        return std::hash<std::string>()(*var->get_string());
+        return std::hash<std::string>()(var.get_string()->get_value());
     case variable_type::LIST: // lists, tables and functions are not allowed to be used as keys
         return 0;
     case variable_type::TABLE:
@@ -25,9 +25,9 @@ std::size_t variable_hasher::operator()(const variable *var) const
     }
 }
 
-bool variable_equal::operator()(const variable *lhs, const variable *rhs) const
+bool variable_equal::operator()(const variable &lhs, const variable &rhs) const
 {
-    return *lhs == *rhs;
+    return lhs == rhs;
 }
 
 variable::variable(variable_type type) : type(type)
@@ -43,13 +43,13 @@ variable::variable(variable_type type) : type(type)
         number = 0;
         break;
     case variable_type::STRING:
-        string = new std::string();
+        string = new lentus_string();
         break;
     case variable_type::LIST:
-        list = new std::vector<variable *>();
+        list = new lentus_list();
         break;
     case variable_type::TABLE:
-        table = new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(0, variable_hasher(), variable_equal());
+        table = new lentus_table();
         break;
     case variable_type::FUNCTION:
         fn = nullptr;
@@ -66,22 +66,22 @@ variable::variable(const variable &var) : type(var.type)
     case variable_type::NONE:
         break;
     case variable_type::BOOLEAN:
-        boolean = var.get_boolean();
+        boolean = var.boolean;
         break;
     case variable_type::NUMBER:
-        number = var.get_number();
+        number = var.number;
         break;
     case variable_type::STRING:
-        string = new std::string(*var.get_string());
+        string = var.string;
         break;
     case variable_type::LIST:
-        list = new std::vector<variable *>(*var.get_list());
+        list = var.list;
         break;
     case variable_type::TABLE:
-        table = new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(*var.get_table());
+        table = var.table;
         break;
     case variable_type::FUNCTION:
-        fn = new function(*var.get_function());
+        fn = var.fn;
         break;
     }
 }
@@ -136,16 +136,16 @@ variable &variable::operator=(const variable &var)
         number = var.number;
         break;
     case variable_type::STRING:
-        string = new std::string(*var.string);
+        string = var.string;
         break;
     case variable_type::LIST:
-        list = new std::vector<variable *>(*var.list);
+        list = var.list;
         break;
     case variable_type::TABLE:
-        table = new std::unordered_map<variable *, variable *, variable_hasher, variable_equal>(*var.table);
+        table = var.table;
         break;
     case variable_type::FUNCTION:
-        fn = new function(*var.fn);
+        fn = var.fn;
         break;
     }
     return *this;
@@ -194,19 +194,15 @@ variable::~variable()
     switch (type)
     {
     case variable_type::STRING:
-        delete string;
         string = nullptr;
         break;
     case variable_type::LIST:
-        delete list;
         list = nullptr;
         break;
     case variable_type::TABLE:
-        delete table;
         table = nullptr;
         break;
     case variable_type::FUNCTION:
-        delete fn;
         fn = nullptr;
         break;
     default:
@@ -227,7 +223,7 @@ bool variable::operator==(const variable &var) const
     case variable_type::NUMBER:
         return this->number == var.number;
     case variable_type::STRING:
-        return *this->string == *var.string;
+        return this->string->get_value() == var.string->get_value();
     case variable_type::LIST:
         if (this->list->size() != var.list->size())
         {
@@ -236,7 +232,7 @@ bool variable::operator==(const variable &var) const
 
         for (size_t i = 0; i < this->list->size(); i++)
         {
-            if (*(*this->list)[i] != *(*var.list)[i])
+            if (this->list->at(i) != var.list->at(i))
             {
                 return false;
             }
@@ -252,7 +248,7 @@ bool variable::operator==(const variable &var) const
         {
             if (var.table->contains(key))
             {
-                if (*value != *var.table->at(key))
+                if (value != var.table->at(key))
                 {
                     return false;
                 }
@@ -283,7 +279,7 @@ bool variable::operator<=(const variable &var) const
     case variable_type::NUMBER:
         return this->number <= var.number;
     case variable_type::STRING:
-        return *this->string <= *var.string;
+        return this->string->get_value() <= var.string->get_value();
     case variable_type::LIST:
         if (this->list->size() != var.list->size())
         {
@@ -293,11 +289,11 @@ bool variable::operator<=(const variable &var) const
         // Lexical ordering
         for (size_t i = 0; i < this->list->size(); i++)
         {
-            if (*(*this->list)[i] < *(*var.list)[i])
+            if (this->list->at(i) < var.list->at(i))
             {
                 return true;
             }
-            else if (*(*this->list)[i] > *(*var.list)[i])
+            else if (this->list->at(i) > var.list->at(i))
             {
                 return false;
             }
@@ -327,7 +323,7 @@ bool variable::operator<(const variable &var) const
     case variable_type::NUMBER:
         return this->number < var.number;
     case variable_type::STRING:
-        return *this->string < *var.string;
+        return this->string->get_value() < var.string->get_value();
     case variable_type::LIST:
         if (this->list->size() != var.list->size())
         {
@@ -337,11 +333,11 @@ bool variable::operator<(const variable &var) const
         // Lexical ordering
         for (size_t i = 0; i < this->list->size(); i++)
         {
-            if (*(*this->list)[i] < *(*var.list)[i])
+            if (this->list->at(i) < var.list->at(i))
             {
                 return true;
             }
-            else if (*(*this->list)[i] > *(*var.list)[i])
+            else if (this->list->at(i) > var.list->at(i))
             {
                 return false;
             }
@@ -370,7 +366,7 @@ double variable::get_number() const
     }
 }
 
-const std::string *variable::get_string() const
+const lentus_string *variable::get_string() const
 {
     if (type == variable_type::STRING)
     {
@@ -382,7 +378,7 @@ const std::string *variable::get_string() const
     }
 }
 
-const std::vector<variable *> *variable::get_list() const
+const lentus_list *variable::get_list() const
 {
     if (type == variable_type::LIST)
     {
@@ -394,7 +390,7 @@ const std::vector<variable *> *variable::get_list() const
     }
 }
 
-const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *variable::get_table() const
+const lentus_table *variable::get_table() const
 {
     if (type == variable_type::TABLE)
     {
@@ -406,7 +402,19 @@ const std::unordered_map<variable *, variable *, variable_hasher, variable_equal
     }
 }
 
-std::vector<variable *> *variable::get_list()
+lentus_string *variable::get_string()
+{
+    if (type == variable_type::STRING)
+    {
+        return string;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+lentus_list *variable::get_list()
 {
     if (type == variable_type::LIST)
     {
@@ -418,7 +426,7 @@ std::vector<variable *> *variable::get_list()
     }
 }
 
-std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *variable::get_table()
+lentus_table *variable::get_table()
 {
     if (type == variable_type::TABLE)
     {
@@ -428,6 +436,11 @@ std::unordered_map<variable *, variable *, variable_hasher, variable_equal> *var
     {
         return nullptr;
     }
+}
+
+function *variable::get_function()
+{
+    return fn;
 }
 
 const function *variable::get_function() const
@@ -459,7 +472,7 @@ std::string variable::get_type_name() const
     return std::string(magic_enum::enum_name(type));
 }
 
-void variable::write_to_string_recursive(std::string &str)
+void variable::write_to_string_recursive(std::string &str) const
 {
     switch (type)
     {
@@ -480,7 +493,7 @@ void variable::write_to_string_recursive(std::string &str)
         str += std::to_string(number);
         break;
     case variable_type::STRING:
-        str += *string;
+        str += string->get_value();
         break;
     case variable_type::LIST:
     {
@@ -491,8 +504,8 @@ void variable::write_to_string_recursive(std::string &str)
             {
                 str += ", ";
             }
-            variable *var = (*list)[i];
-            var->write_to_string_recursive(str);
+            variable &var = (*list)[i];
+            var.write_to_string_recursive(str);
         }
         break;
     }
@@ -511,9 +524,9 @@ void variable::write_to_string_recursive(std::string &str)
                 first = false;
             }
 
-            entry.first->write_to_string_recursive(str);
+            entry.first.write_to_string_recursive(str);
             str += " = ";
-            entry.second->write_to_string_recursive(str);
+            entry.second.write_to_string_recursive(str);
         }
         str += "}";
         break;
@@ -552,7 +565,7 @@ std::string variable::to_string_recursive() const
             return std::to_string(number);
         }
     case variable_type::STRING:
-        return "\"" + *string + "\"";
+        return "\"" + string->get_value() + "\"";
     case variable_type::LIST:
     {
         std::string str = "[";
@@ -562,8 +575,8 @@ std::string variable::to_string_recursive() const
             {
                 str += ", ";
             }
-            variable *var = (*list)[i];
-            var->write_to_string_recursive(str);
+            variable &var = (*list)[i];
+            var.write_to_string_recursive(str);
         }
         str += "]";
         return str;
@@ -583,9 +596,9 @@ std::string variable::to_string_recursive() const
                 first = false;
             }
 
-            entry.first->write_to_string_recursive(str);
+            entry.first.write_to_string_recursive(str);
             str += " = ";
-            entry.second->write_to_string_recursive(str);
+            entry.second.write_to_string_recursive(str);
         }
         str += "}";
         return str;
@@ -622,7 +635,7 @@ std::string variable::to_string() const
             return std::to_string(number);
         }
     case variable_type::STRING:
-        return *string;
+        return string->get_value();
     case variable_type::LIST:
     {
         return "<list @" + std::to_string((size_t)this->list) + ">";

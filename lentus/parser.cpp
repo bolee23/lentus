@@ -236,7 +236,7 @@ parse_result<expression> parse_call(parser_data &data)
                 return {new error_expression(), true};
             }
         }
-        
+
         expr = new call_expression(expr, std::move(arguments), expr->get_line_number(), expr->get_start_position(), data.tokens[data.position - 1].get_end_position());
     }
 
@@ -289,29 +289,20 @@ parse_result<expression> parse_logical_or(parser_data &data)
 
 parse_result<expression> parse_assignment(parser_data &data)
 {
-    if (match_and_consume(data, token_type::IDENTIFIER))
+    parse_result<expression> left_result = parse_logical_or(data);
+    expression *left = left_result.ast;
+
+    if (match_and_consume(data, token_type::ASSIGN))
     {
-        const token &identifier_token = data.tokens[data.position - 1];
-        const std::string *identifier = identifier_token.get_identifier_name();
-        int line_number = identifier_token.get_line_number();
-        int start_position = identifier_token.get_start_position();
+        token op = data.tokens[data.position - 1];
+        parse_result<expression> right_result = parse_assignment(data);
+        expression *right = right_result.ast;
+        bool error = left_result.error || right_result.error;
 
-        if (match_and_consume(data, token_type::ASSIGN))
-        {
-            token op = data.tokens[data.position - 1];
-            parse_result<expression> value_result = parse_assignment(data);
-            expression *value = value_result.ast;
-            bool error = value_result.error;
-
-            return {new assignment_expression(*identifier, op, value, line_number, start_position, value->get_end_position()), error};
-        }
-        else
-        {
-            data.position--; // Unconsume the identifier token
-        }
+        return {new binary_expression(op, left, right), error};
     }
 
-    return parse_logical_or(data);
+    return left_result;
 }
 
 parse_result<expression> parse_expression(parser_data &data)

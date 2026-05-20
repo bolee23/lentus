@@ -24,7 +24,7 @@ public:
     error_statement(const error_statement &other) = delete;
     error_statement &operator=(const error_statement &other) = delete;
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     std::string to_string() const override { return "<error>\n"; }
     ~error_statement() override = default;
 };
@@ -59,7 +59,7 @@ public:
     const std::string &get_identifier() const { return identifier; }
     expression *get_value() const { return value; }
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
     ~declaration_statement() override;
@@ -89,7 +89,7 @@ public:
 
     expression *get_expression() const { return expr; }
 
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
     ~expression_statement() override;
@@ -115,7 +115,7 @@ public:
     /**
      * @return The value of the last statement in the sequence, or None if the sequence is empty
      */
-    variable *evaluate(execution_context &execution) const override;
+    reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
     ~sequence_statement() override;

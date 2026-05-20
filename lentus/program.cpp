@@ -4,78 +4,96 @@
 #include "parser.hpp"
 #include "execution.hpp"
 
-/**
- * Internal function for adding a variable to the variables array
- */
-variable *program::add_variable(variable *var_ptr)
+variable program::track_variable(variable var)
 {
-    this->variables.push_back(var_ptr);
-    return var_ptr;
+    if (var.get_type() == variable_type::STRING)
+    {
+        variable_blocks.push_back(var.get_string());
+    }
+    else if (var.get_type() == variable_type::LIST)
+    {
+        variable_blocks.push_back(var.get_list());
+    }
+    else if (var.get_type() == variable_type::TABLE)
+    {
+        variable_blocks.push_back(var.get_table());
+    }
+
+    return var;
 }
 
-variable *program::add_variable(const variable &var)
+variable program::track(lentus_string &&str)
 {
-    return add_variable(new variable(var));
+    lentus_string *str_ptr = new lentus_string(std::move(str));
+    variable_blocks.push_back(str_ptr);
+    return variable(str_ptr);
 }
 
-variable *program::add_variable(variable &&var)
+variable program::track(const lentus_string &str)
 {
-    return add_variable(new variable(var));
+    lentus_string *str_ptr = new lentus_string(str);
+    variable_blocks.push_back(str_ptr);
+    return variable(str_ptr);
 }
 
-variable *program::create_variable(bool value)
+variable program::track(lentus_string *ptr)
 {
-    return add_variable(new variable(value));
+    variable_blocks.push_back(ptr);
+    return variable(ptr);
 }
 
-variable *program::create_variable(double value)
+variable program::track(lentus_list &&list)
 {
-    return add_variable(new variable(value));
+    lentus_list *list_ptr = new lentus_list(std::move(list));
+    variable_blocks.push_back(list_ptr);
+    return variable(list_ptr);
 }
 
-variable *program::create_variable(const std::string &value)
+variable program::track(const lentus_list &list)
 {
-    return add_variable(new variable(value));
+    lentus_list *list_ptr = new lentus_list(list);
+    variable_blocks.push_back(list_ptr);
+    return variable(list_ptr);
 }
 
-variable *program::create_variable(std::string &&value)
+variable program::track(lentus_list *ptr)
 {
-    return add_variable(new variable(value));
+    variable_blocks.push_back(ptr);
+    return variable(ptr);
 }
 
-variable *program::create_variable(const std::vector<variable *> &value)
+variable program::track(lentus_table &&table)
 {
-    return add_variable(new variable(value));
+    lentus_table *table_ptr = new lentus_table(std::move(table));
+    variable_blocks.push_back(table_ptr);
+    return variable(table_ptr);
 }
 
-variable *program::create_variable(std::vector<variable *> &&value)
+variable program::track(const lentus_table &table)
 {
-    return add_variable(new variable(value));
+    lentus_table *table_ptr = new lentus_table(table);
+    variable_blocks.push_back(table_ptr);
+    return variable(table_ptr);
 }
 
-variable *program::create_variable(const std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &value)
+variable program::track(lentus_table *ptr)
 {
-    return add_variable(new variable(value));
+    variable_blocks.push_back(ptr);
+    return variable(ptr);
 }
 
-variable *program::create_variable(std::unordered_map<variable *, variable *, variable_hasher, variable_equal> &&value)
+lentus_list *program::create_empty_list()
 {
-    return add_variable(new variable(value));
+    lentus_list *list = new lentus_list();
+    variable_blocks.push_back(list);
+    return list;
 }
 
-variable *program::create_function(const function *value)
+lentus_table *program::create_empty_table()
 {
-    return add_variable(new variable(value));
-}
-
-variable *program::create_empty_list()
-{
-    return add_variable(new variable(std::vector<variable *>()));
-}
-
-variable *program::create_empty_table()
-{
-    return add_variable(new variable(std::unordered_map<variable *, variable *, variable_hasher, variable_equal>()));
+    lentus_table *table = new lentus_table();
+    variable_blocks.push_back(table);
+    return table;
 }
 
 std::optional<program_module *> program::load_module(const std::filesystem::path &path, std::ostream &error_stream, bool lp_debug)
@@ -105,7 +123,7 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     // Execute module
     execution_context execution(this);
 
-    std::optional<variable *> result = execution.execute_module(created_module);
+    std::optional<reference> result = execution.execute_module(created_module);
 
     if (!result)
     {
@@ -115,17 +133,12 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     return std::make_optional(created_module);
 }
 
-program::program() : anon_module(create_empty_table())
-{
-    none_variable = add_variable(new variable());
-    true_variable = create_variable(true);
-    false_variable = create_variable(false);
-}
+program::program() : anon_module(create_empty_table()) {}
 
 program::program(program &&prog) : anon_module(std::move(prog.anon_module))
 {
     this->modules = std::move(prog.modules);
-    this->variables = std::move(prog.variables);
+    this->variable_blocks = std::move(prog.variable_blocks);
 }
 
 program &program::operator=(program &&prog)
@@ -133,7 +146,7 @@ program &program::operator=(program &&prog)
     if (this != &prog)
     {
         this->modules = std::move(prog.modules);
-        this->variables = std::move(prog.variables);
+        this->variable_blocks = std::move(prog.variable_blocks);
         this->anon_module = prog.anon_module;
     }
     return *this;
@@ -147,7 +160,7 @@ program::~program()
         delete mod;
     }
 
-    for (variable *var : variables)
+    for (variable_block *var : variable_blocks)
     {
         delete var;
     }

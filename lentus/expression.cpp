@@ -117,7 +117,7 @@ std::string literal_expression::to_string() const
     case variable_type::NUMBER:
         return std::to_string(value.get_number());
     case variable_type::STRING:
-        return "\"" + *value.get_string() + "\"";
+        return "\"" + value.get_string()->get_value() + "\"";
     default:
         return "literal";
     }
@@ -125,36 +125,6 @@ std::string literal_expression::to_string() const
 
 literal_expression::~literal_expression()
 {
-}
-
-assignment_expression &assignment_expression::operator=(assignment_expression &&other)
-{
-    if (this != &other)
-    {
-        identifier = std::move(other.identifier);
-        op = other.op;
-        value = other.value;
-        other.value = nullptr;
-    }
-    return *this;
-}
-
-assignment_expression::assignment_expression(assignment_expression &&other)
-{
-    identifier = std::move(other.identifier);
-    op = other.op;
-    value = other.value;
-    other.value = nullptr;
-}
-
-std::string assignment_expression::to_string() const
-{
-    return op.to_string() + "[" + identifier + ", " + value->to_string() + "]";
-}
-
-assignment_expression::~assignment_expression()
-{
-    delete value;
 }
 
 identifier_expression::identifier_expression(identifier_expression &&other)
@@ -222,19 +192,19 @@ std::string call_expression::to_string() const
     return str;
 }
 
-variable *error_expression::evaluate([[maybe_unused]] execution_context &execution) const
+reference error_expression::evaluate([[maybe_unused]] execution_context &execution) const
 {
     throw new lentus_runtime_exception("Tried to evaluate error_node");
 }
 
-variable *literal_expression::evaluate(execution_context &execution) const
+reference literal_expression::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    return execution.get_program()->add_variable(this->value);
+    return this->value;
 }
 
-variable *unary_expression::evaluate(execution_context &execution) const
+reference unary_expression::evaluate(execution_context &execution) const
 {
-    variable *rhs = this->operand->evaluate(execution);
+    reference rhs = this->operand->evaluate(execution);
 
     switch (op.get_type())
     {
@@ -243,13 +213,13 @@ variable *unary_expression::evaluate(execution_context &execution) const
         {
             throw lentus_runtime_exception(std::string("Invalid type in negation: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
         }
-        return execution.get_program()->add_variable(-rhs->get_number());
+        return reference(-rhs->get_number());
     case token_type::NOT:
         if (!rhs->is(variable_type::BOOLEAN))
         {
             throw lentus_runtime_exception(std::string("Invalid type in logical NOT: BOOLEAN expected, got ") + rhs->get_type_name() + " instead", this);
         }
-        return execution.get_program()->add_variable(!rhs->get_boolean());
+        return reference(!rhs->get_boolean());
     default:
         throw lentus_runtime_exception("Invalid unary operator token " + op.to_string(), this);
     }
@@ -258,7 +228,7 @@ variable *unary_expression::evaluate(execution_context &execution) const
 /**
  * Helper function for checking the data for antisymmetric comparison operators (<=, <, >=, >)
  */
-void antisymmetric_comparison_check(const binary_expression *ptr, variable *lhs, variable *rhs)
+void antisymmetric_comparison_check(const binary_expression *ptr, reference lhs, reference rhs)
 {
     if (lhs->get_type() == variable_type::TABLE || lhs->get_type() == variable_type::FUNCTION)
     {
@@ -270,26 +240,26 @@ void antisymmetric_comparison_check(const binary_expression *ptr, variable *lhs,
     }
 }
 
-variable *binary_expression::evaluate(execution_context &execution) const
+reference binary_expression::evaluate(execution_context &execution) const
 {
-    variable *lhs = this->left->evaluate(execution);
-    variable *rhs = this->right->evaluate(execution);
+    reference lhs = this->left->evaluate(execution);
+    reference rhs = this->right->evaluate(execution);
 
     switch (op.get_type())
     {
     case token_type::ADD:
         if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
         {
-            return execution.get_program()->add_variable(lhs->get_number() + rhs->get_number());
+            return reference(lhs->get_number() + rhs->get_number());
         }
         else if (lhs->is(variable_type::STRING) && rhs->is(variable_type::STRING))
         {
-            const std::string *left_string = lhs->get_string();
-            const std::string *right_string = rhs->get_string();
-            std::string new_string = std::string(left_string->size() + right_string->size(), '\0');
-            new_string += *left_string;
-            new_string += *right_string;
-            return execution.get_program()->add_variable(new_string);
+            lentus_string *left_string = lhs->get_string();
+            lentus_string *right_string = rhs->get_string();
+            lentus_string *new_string = new lentus_string(std::string((**left_string).size() + (**right_string).size(), '\0'));
+            (*new_string)->append(**left_string);
+            (*new_string)->append(**right_string);
+            return reference(execution.get_program()->track(new_string));
         }
         else
         {
@@ -298,7 +268,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::SUBTRACT:
         if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
         {
-            return execution.get_program()->add_variable(lhs->get_number() - rhs->get_number());
+            return reference(lhs->get_number() - rhs->get_number());
         }
         else
         {
@@ -307,7 +277,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::MULTIPLY:
         if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
         {
-            return execution.get_program()->add_variable(lhs->get_number() * rhs->get_number());
+            return reference(lhs->get_number() * rhs->get_number());
         }
         else
         {
@@ -316,7 +286,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::DIVIDE:
         if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
         {
-            return execution.get_program()->add_variable(lhs->get_number() / rhs->get_number());
+            return reference(lhs->get_number() / rhs->get_number());
         }
         else
         {
@@ -325,7 +295,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::EQUAL:
         if (lhs->get_type() == rhs->get_type())
         {
-            return execution.get_program()->add_variable(*lhs == *rhs);
+            return reference(*lhs == *rhs);
         }
         else
         {
@@ -334,7 +304,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::NOT_EQUAL:
         if (lhs->get_type() == rhs->get_type())
         {
-            return execution.get_program()->add_variable(*lhs != *rhs);
+            return reference(*lhs != *rhs);
         }
         else
         {
@@ -344,7 +314,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
         if (lhs->get_type() == rhs->get_type())
         {
             antisymmetric_comparison_check(this, lhs, rhs);
-            return execution.get_program()->add_variable(*lhs < *rhs);
+            return reference(*lhs < *rhs);
         }
         else
         {
@@ -355,7 +325,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
         {
             antisymmetric_comparison_check(this, lhs, rhs);
 
-            return execution.get_program()->add_variable(*lhs <= *rhs);
+            return reference(*lhs <= *rhs);
         }
         else
         {
@@ -366,7 +336,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
         {
             antisymmetric_comparison_check(this, lhs, rhs);
 
-            return execution.get_program()->add_variable(*lhs > *rhs);
+            return reference(*lhs > *rhs);
         }
         else
         {
@@ -377,7 +347,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
         {
             antisymmetric_comparison_check(this, lhs, rhs);
 
-            return execution.get_program()->add_variable(*lhs >= *rhs);
+            return reference(*lhs >= *rhs);
         }
         else
         {
@@ -386,7 +356,7 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::OR:
         if (lhs->is(variable_type::BOOLEAN) && rhs->is(variable_type::BOOLEAN))
         {
-            return execution.get_program()->add_variable(lhs->get_boolean() || rhs->get_boolean());
+            return reference(lhs->get_boolean() || rhs->get_boolean());
         }
         else
         {
@@ -395,60 +365,55 @@ variable *binary_expression::evaluate(execution_context &execution) const
     case token_type::AND:
         if (lhs->is(variable_type::BOOLEAN) && rhs->is(variable_type::BOOLEAN))
         {
-            return execution.get_program()->add_variable(lhs->get_boolean() && rhs->get_boolean());
+            return reference(lhs->get_boolean() && rhs->get_boolean());
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid types in \"or\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw lentus_runtime_exception(std::string("Invalid types in \"and\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+        }
+    case token_type::ASSIGN:
+        if(lhs.is_modifiable_reference())
+        {
+            *lhs = *rhs;
+            return lhs;
+        }
+        else
+        {
+            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
     default:
         throw lentus_runtime_exception("Invalid binary operator token " + op.to_string(), this);
     }
 }
 
-variable *grouping_expression::evaluate(execution_context &execution) const
+reference grouping_expression::evaluate(execution_context &execution) const
 {
     return this->inner_expression->evaluate(execution);
 }
 
-variable *assignment_expression::evaluate(execution_context &execution) const
+reference identifier_expression::evaluate(execution_context &execution) const
 {
-    variable *var = execution.get_variable(identifier);
-    if (var != nullptr)
+    std::optional<reference> opt = execution.get_variable(identifier);
+    if (opt)
     {
-        variable *evaluated_value = value->evaluate(execution); // value to be assigned
-        execution.set_variable(identifier, evaluated_value);
-        return evaluated_value;
-    }
-    else
-    {
-        throw lentus_runtime_exception(std::string("Cannot assign to an undeclared variable " + identifier), this);
-    }
-}
-
-variable *identifier_expression::evaluate(execution_context &execution) const
-{
-    variable *var = execution.get_variable(identifier);
-    if (var != nullptr)
-    {
-        return var;
+        return opt.value();
     }
     else
     {
         // temporary hardwiring to supprort print function
         if (identifier == "print")
         {
-            return execution.get_program()->create_variable(std::string("print_temporary"));
+            return reference(variable(std::string("print_temporary")));
         }
         throw lentus_runtime_exception(std::string("Unregonized symbol " + identifier), this);
     }
 }
 
-variable *call_expression::evaluate(execution_context &execution) const
+reference call_expression::evaluate(execution_context &execution) const
 {
-    variable *callee_var = callee->evaluate(execution);
+    reference callee_var = callee->evaluate(execution);
     // temporary hardwiring to support print function (no function variable type yet)
-    if (callee_var->is(variable_type::STRING) && *callee_var->get_string() == "print_temporary")
+    if (callee_var->is(variable_type::STRING) && **callee_var->get_string() == "print_temporary")
     {
         // Print arguments seperated by commas.
         for (int i = 0; i < (int)arguments.size(); i++)
@@ -457,5 +422,5 @@ variable *call_expression::evaluate(execution_context &execution) const
         }
         std::cout << std::endl;
     }
-    return execution.get_program()->get_none_variable();
+    return variable();
 }
