@@ -152,6 +152,12 @@ public:
     void operator=(std::string &&new_value) { value = std::move(new_value); }
 };
 
+/**
+ * Represents a variable in the Lentus language.
+ * Copying a variable (by constructor or operator=) creates a shallow copy of the variable.
+ * This means that for the string, list and table types, the pointer to the underlying data structure is copied, but the data structure itself is not copied.
+ * The variable class also doesn't perform memory management for the pointers.
+ */
 class variable
 {
 private:
@@ -176,24 +182,11 @@ public:
     variable(double value) : type(variable_type::NUMBER), number(value) {}
     variable(int value) : type(variable_type::NUMBER), number(value) {}
 
-    variable(const std::string &value) : type(variable_type::STRING), string(new lentus_string(value)) {}
-    variable(std::string &&value) : type(variable_type::STRING), string(new lentus_string(std::move(value))) {}
     variable(lentus_string *value) : type(variable_type::STRING), string(value) {}
-    variable(const lentus_string &value) : type(variable_type::STRING), string(new lentus_string(value)) {}
-    variable(lentus_string &&value) : type(variable_type::STRING), string(new lentus_string(std::move(value))) {}
-    variable(const char *value) : type(variable_type::STRING), string(new lentus_string(std::string(value))) {}
 
-    variable(const std::vector<variable> &value) : type(variable_type::LIST), list(new lentus_list(value)) {}
-    variable(std::vector<variable> &&value) : type(variable_type::LIST), list(new lentus_list(std::move(value))) {}
     variable(lentus_list *value) : type(variable_type::LIST), list(value) {}
-    variable(const lentus_list &value) : type(variable_type::LIST), list(new lentus_list(value)) {}
-    variable(lentus_list &&value) : type(variable_type::LIST), list(new lentus_list(std::move(value))) {}
 
-    variable(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &value) : type(variable_type::TABLE), table(new lentus_table(value)) {}
-    variable(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&value) : type(variable_type::TABLE), table(new lentus_table(std::move(value))) {}
     variable(lentus_table *value) : type(variable_type::TABLE), table(value) {}
-    variable(const lentus_table &value) : type(variable_type::TABLE), table(new lentus_table(value)) {}
-    variable(lentus_table &&value) : type(variable_type::TABLE), table(new lentus_table(std::move(value))) {}
 
     variable(function *value) : type(variable_type::FUNCTION), fn(value) {}
 
@@ -202,6 +195,7 @@ public:
 
     variable &operator=(const variable &var);
     variable &operator=(variable &&var);
+
     variable_type get_type() const { return type; }
     bool is(variable_type type) const { return this->type == type; }
     std::string get_type_name() const;
@@ -240,7 +234,7 @@ public:
  * If the reference is a modifiable reference, the reference holds a pointer to the variable
  * If the reference is a direct reference, the reference holds the variable directly to avoid heap allocation
  *
- * Modifiable references should not be held for more than one expression evaluation as they may become dangling after the expression evaluation finishes.
+ * Modifiable references to an list or table should not be held after the list or table could potentially be reallocated.
  */
 class reference
 {

@@ -23,8 +23,8 @@ public:
 
     std::optional<reference> execute_module(program_module *module);
 
-    program *get_program() { return prgm; }
-    const program *get_program() const { return prgm; }
+    program &get_program() { return *prgm; }
+    const program &get_program() const { return *prgm; }
 
     /**
      * Push a new stack frame for executing a new module onto the stack

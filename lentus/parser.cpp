@@ -168,13 +168,16 @@ parse_result<expression> parse_primary(parser_data &data)
         return {new literal_expression(variable(true), line_number, start_position, end_position), false};
     case token_type::NONE:
         data.position++;
-        return {new literal_expression(variable(), line_number, start_position, end_position), true};
+        return {new literal_expression(variable(), line_number, start_position, end_position), false};
     case token_type::NUMBER:
         data.position++;
         return {new literal_expression(variable(current.get_number_constant()), line_number, start_position, end_position), false};
     case token_type::STRING:
+    {
         data.position++;
-        return {new literal_expression(variable(std::string(*current.get_string_constant())), line_number, start_position, end_position), false};
+        lentus_string *string_constant = new lentus_string(*current.get_string_constant());
+        return {new literal_expression(variable(string_constant), line_number, start_position, end_position), false};
+    }
     case token_type::LEFT_BRACKET:
     {
         data.position++;

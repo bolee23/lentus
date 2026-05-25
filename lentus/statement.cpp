@@ -150,21 +150,28 @@ reference sequence_statement::evaluate(execution_context &execution) const
 
 reference declaration_statement::evaluate(execution_context &execution) const
 {
+    lentus_string lentus_identifier(this->identifier);
+
     stack_frame &frame = execution.peek();
-    if (frame.local_variables->contains(identifier))
+    if (frame.local_variables->contains(variable(&lentus_identifier)))
     { // Already defined in this scope
-        throw lentus_runtime_exception("Variable " + identifier + " already defined in this scope", this);
+        throw lentus_runtime_exception("Variable " + *lentus_identifier + " already defined in this scope", this);
     }
     else
     {
+        // Dynamically allocate new variable and track it.
+        variable key = execution.get_program().create_string(new lentus_string(std::move(lentus_identifier)));
+
         if (value == nullptr)
         {
-            frame.local_variables->operator[](identifier) = variable();
+            frame.local_variables->operator[](key) = variable();
+            return variable();
         }
         else
         {
-            frame.local_variables->operator[](identifier) = *value->evaluate(execution);
+            variable &result = *value->evaluate(execution);
+            frame.local_variables->operator[](key) = result;
+            return result;
         }
     }
-    return frame.local_variables->operator[](identifier);
 }

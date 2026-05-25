@@ -14,6 +14,8 @@ class program
 private:
     std::unordered_map<std::filesystem::path, program_module *> modules;
     std::vector<variable_block *> variable_blocks; /** List of all dynamically allocated variable_blocks in the program */
+    std::vector<variable_block *> literal_blocks;  /** List of all variable_blocks created from literals in the module for deallocation */
+
     anonymous_module anon_module;
 
 public:
@@ -33,17 +35,26 @@ public:
      */
     variable track_variable(variable var);
 
-    variable track(lentus_string &&str);
-    variable track(const lentus_string &str);
-    variable track(lentus_string *ptr);
+    /**
+     * Creates a variable that holds a pointer to the given lentus_string and tracks the lentus_string for deallocation.
+     */
+    variable create_string(lentus_string *ptr);
+    variable create_string(const std::string &str) { return create_string(new lentus_string(str)); }
+    variable create_string(std::string &&str) { return create_string(new lentus_string(std::move(str))); }
 
-    variable track(lentus_list &&list);
-    variable track(const lentus_list &list);
-    variable track(lentus_list *ptr);
+    /**
+     * Creates a variable that holds a pointer to the given lentus_list and tracks the lentus_list for deallocation.
+     */
+    variable create_list(lentus_list *ptr);
+    variable create_list(const std::vector<variable> &elements) { return create_list(new lentus_list(elements)); }
+    variable create_list(std::vector<variable> &&elements) { return create_list(new lentus_list(std::move(elements))); }
 
-    variable track(lentus_table &&table);
-    variable track(const lentus_table &table);
-    variable track(lentus_table *ptr);
+    /**
+     * Creates a variable that holds a pointer to the given lentus_table and tracks the lentus_table for deallocation.
+     */
+    variable create_table(lentus_table *ptr);
+    variable create_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) { return create_table(new lentus_table(entries)); }
+    variable create_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) { return create_table(new lentus_table(std::move(entries))); }
 
     lentus_list *create_empty_list();
     lentus_table *create_empty_table();

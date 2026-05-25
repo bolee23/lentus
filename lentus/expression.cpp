@@ -93,8 +93,17 @@ grouping_expression::~grouping_expression()
     delete inner_expression;
 }
 
+literal_expression::literal_expression(const std::string &value, int line_number, int start_position, int end_position)
+{
+    this->value = variable(new lentus_string(value));
+    this->line_number = line_number;
+    this->start_position = start_position;
+    this->end_position = end_position;
+}
+
 literal_expression::literal_expression(literal_expression &&other) : value(std::move(other.value))
 {
+    other.value = variable();
 }
 
 literal_expression &literal_expression::operator=(literal_expression &&other)
@@ -102,8 +111,30 @@ literal_expression &literal_expression::operator=(literal_expression &&other)
     if (this != &other)
     {
         value = std::move(other.value);
+        other.value = variable();
     }
     return *this;
+}
+
+literal_expression::~literal_expression()
+{
+    switch (value.get_type())
+    {
+    case variable_type::STRING:
+        delete value.get_string();
+        break;
+    case variable_type::LIST:
+        delete value.get_list();
+        break;
+    case variable_type::TABLE:
+        delete value.get_table();
+        break;
+    case variable_type::FUNCTION:
+        delete value.get_function();
+        break;
+    default:
+        break;
+    }
 }
 
 std::string literal_expression::to_string() const
@@ -121,10 +152,6 @@ std::string literal_expression::to_string() const
     default:
         return "literal";
     }
-}
-
-literal_expression::~literal_expression()
-{
 }
 
 identifier_expression::identifier_expression(identifier_expression &&other)
@@ -256,10 +283,10 @@ reference binary_expression::evaluate(execution_context &execution) const
         {
             lentus_string *left_string = lhs->get_string();
             lentus_string *right_string = rhs->get_string();
-            lentus_string *new_string = new lentus_string(std::string((**left_string).size() + (**right_string).size(), '\0'));
+            lentus_string *new_string = new lentus_string(std::string((*left_string)->size() + (*right_string)->size(), '\0'));
             (*new_string)->append(**left_string);
             (*new_string)->append(**right_string);
-            return reference(execution.get_program()->track(new_string));
+            return reference(execution.get_program().create_string(new_string));
         }
         else
         {
@@ -372,7 +399,7 @@ reference binary_expression::evaluate(execution_context &execution) const
             throw lentus_runtime_exception(std::string("Invalid types in \"and\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::ASSIGN:
-        if(lhs.is_modifiable_reference())
+        if (lhs.is_modifiable_reference())
         {
             *lhs = *rhs;
             return lhs;
@@ -403,9 +430,10 @@ reference identifier_expression::evaluate(execution_context &execution) const
         // temporary hardwiring to supprort print function
         if (identifier == "print")
         {
-            return reference(variable(std::string("print_temporary")));
+
+            return reference(execution.get_program().create_string("print_temporary"));
         }
-        throw lentus_runtime_exception(std::string("Unregonized symbol " + identifier), this);
+        throw lentus_runtime_exception(std::string("Unrecognized symbol " + identifier), this);
     }
 }
 

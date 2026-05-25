@@ -22,61 +22,19 @@ variable program::track_variable(variable var)
     return var;
 }
 
-variable program::track(lentus_string &&str)
-{
-    lentus_string *str_ptr = new lentus_string(std::move(str));
-    variable_blocks.push_back(str_ptr);
-    return variable(str_ptr);
-}
-
-variable program::track(const lentus_string &str)
-{
-    lentus_string *str_ptr = new lentus_string(str);
-    variable_blocks.push_back(str_ptr);
-    return variable(str_ptr);
-}
-
-variable program::track(lentus_string *ptr)
+variable program::create_string(lentus_string *ptr)
 {
     variable_blocks.push_back(ptr);
     return variable(ptr);
 }
 
-variable program::track(lentus_list &&list)
-{
-    lentus_list *list_ptr = new lentus_list(std::move(list));
-    variable_blocks.push_back(list_ptr);
-    return variable(list_ptr);
-}
-
-variable program::track(const lentus_list &list)
-{
-    lentus_list *list_ptr = new lentus_list(list);
-    variable_blocks.push_back(list_ptr);
-    return variable(list_ptr);
-}
-
-variable program::track(lentus_list *ptr)
+variable program::create_list(lentus_list *ptr)
 {
     variable_blocks.push_back(ptr);
     return variable(ptr);
 }
 
-variable program::track(lentus_table &&table)
-{
-    lentus_table *table_ptr = new lentus_table(std::move(table));
-    variable_blocks.push_back(table_ptr);
-    return variable(table_ptr);
-}
-
-variable program::track(const lentus_table &table)
-{
-    lentus_table *table_ptr = new lentus_table(table);
-    variable_blocks.push_back(table_ptr);
-    return variable(table_ptr);
-}
-
-variable program::track(lentus_table *ptr)
+variable program::create_table(lentus_table *ptr)
 {
     variable_blocks.push_back(ptr);
     return variable(ptr);
