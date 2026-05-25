@@ -7,7 +7,6 @@
 
 class statement : public ast_node
 {
-    
 };
 
 class error_statement : public statement
@@ -95,6 +94,108 @@ public:
     ~expression_statement() override;
 };
 
+class if_statement : public statement
+{
+private:
+    expression *condition;
+    statement *then_branch;
+    statement *else_branch;
+
+public:
+    if_statement(expression *condition, statement *then_branch, statement *else_branch, int line_number, int start_position, int end_position) : condition(condition), then_branch(then_branch), else_branch(else_branch)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    if_statement(expression *condition, statement *then_branch, int line_number, int start_position, int end_position) : condition(condition), then_branch(then_branch), else_branch(nullptr)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    if_statement(const if_statement &other) = delete;
+    if_statement &operator=(const if_statement &other) = delete;
+
+    if_statement(if_statement &&other);
+    if_statement &operator=(if_statement &&other);
+
+    expression *get_condition() const { return condition; }
+    statement *get_then_branch() const { return then_branch; }
+    statement *get_else_branch() const { return else_branch; }
+
+    reference evaluate(execution_context &execution) const override;
+    virtual std::string to_string() const override;
+
+    ~if_statement() override;
+};
+
+class for_statement : public statement
+{
+private:
+    statement *var_initializer;
+    expression *condition;
+    expression *post_iteration;
+    statement *body;
+
+public:
+    for_statement(statement *var_initializer, expression *condition, expression *post_iteration, statement *body, int line_number, int start_position, int end_position) : var_initializer(var_initializer), condition(condition), post_iteration(post_iteration), body(body)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    for_statement(const for_statement &other) = delete;
+    for_statement &operator=(const for_statement &other) = delete;
+
+    for_statement(for_statement &&other);
+    for_statement &operator=(for_statement &&other);
+
+    statement *get_var_initializer() const { return var_initializer; }
+    expression *get_condition() const { return condition; }
+    expression *get_post_iteration() const { return post_iteration; }
+    statement *get_body() const { return body; }
+
+    reference evaluate(execution_context &execution) const override;
+    virtual std::string to_string() const override;
+
+    ~for_statement() override;
+};
+
+class loop_statement : public statement
+{
+private:
+    expression *condition;
+    statement *body;
+    bool is_do_loop;
+
+public:
+    loop_statement(expression *condition, statement *body, bool is_do_loop, int line_number, int start_position, int end_position) : condition(condition), body(body), is_do_loop(is_do_loop)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    loop_statement(const loop_statement &other) = delete;
+    loop_statement &operator=(const loop_statement &other) = delete;
+
+    loop_statement(loop_statement &&other);
+    loop_statement &operator=(loop_statement &&other);
+
+    expression *get_condition() const { return condition; }
+    statement *get_body() const { return body; }
+    bool get_is_do_loop() const { return is_do_loop; }
+
+    reference evaluate(execution_context &execution) const override;
+    virtual std::string to_string() const override;
+
+    ~loop_statement() override;
+};
+
 class sequence_statement : public statement
 {
 private:
@@ -121,4 +222,23 @@ public:
     ~sequence_statement() override;
 };
 
+class empty_statement : public statement
+{
+public:
+    empty_statement() {}
+
+    empty_statement(const empty_statement &other) = delete;
+    empty_statement &operator=(const empty_statement &other) = delete;
+
+    empty_statement(empty_statement &&other) = default;
+    empty_statement &operator=(empty_statement &&other) = default;
+
+    /**
+     * @return Unmodifiable reference to none
+     */
+    reference evaluate([[maybe_unused]] execution_context &execution) const override { return reference(); };
+    virtual std::string to_string() const override { return "NONE"; };
+
+    ~empty_statement() override = default;
+};
 #endif

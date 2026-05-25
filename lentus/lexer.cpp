@@ -38,6 +38,7 @@ const std::unordered_map<std::string, token_type> keywords = {
     {"if", token_type::IF},
     {"else", token_type::ELSE},
     {"while", token_type::WHILE},
+    {"do", token_type::DO},
     {"for", token_type::FOR},
     {"return", token_type::RETURN},
     {"break", token_type::BREAK},
@@ -55,8 +56,7 @@ void handle_number(lexer_data &data)
     char c = data.source[data.position];
     if (c >= '0' && c <= '9')
     {
-    
-    }
+        }
 
     // i will eventually contain the index of the last character + 1
     int i;

@@ -76,6 +76,164 @@ std::string expression_statement::to_string() const
     return "EXPR " + expr->to_string() + "\n";
 }
 
+if_statement::if_statement(if_statement &&other)
+{
+    condition = other.condition;
+    then_branch = other.then_branch;
+    else_branch = other.else_branch;
+    other.condition = nullptr;
+    other.then_branch = nullptr;
+    other.else_branch = nullptr;
+    line_number = other.line_number;
+    start_position = other.start_position;
+    end_position = other.end_position;
+}
+
+if_statement &if_statement::operator=(if_statement &&other)
+{
+    if (this != &other)
+    {
+        delete condition;
+        delete then_branch;
+        delete else_branch;
+
+        condition = other.condition;
+        then_branch = other.then_branch;
+        else_branch = other.else_branch;
+        other.condition = nullptr;
+        other.then_branch = nullptr;
+        other.else_branch = nullptr;
+        line_number = other.line_number;
+        start_position = other.start_position;
+        end_position = other.end_position;
+    }
+    return *this;
+}
+
+if_statement::~if_statement()
+{
+    delete condition;
+    delete then_branch;
+    delete else_branch;
+}
+
+std::string if_statement::to_string() const
+{
+    std::string result = "IF[" + condition->to_string() + ",THEN{\n" + then_branch->to_string() + "}";
+    if (else_branch)
+    {
+        result += "ELSE{\n" + else_branch->to_string() + "}]\n";
+    }
+    else
+    {
+        result += "]\n";
+    }
+    return result;
+}
+
+for_statement::for_statement(for_statement &&other)
+{
+    var_initializer = other.var_initializer;
+    condition = other.condition;
+    post_iteration = other.post_iteration;
+    body = other.body;
+    other.var_initializer = nullptr;
+    other.condition = nullptr;
+    other.post_iteration = nullptr;
+    other.body = nullptr;
+    line_number = other.line_number;
+    start_position = other.start_position;
+    end_position = other.end_position;
+}
+
+for_statement &for_statement::operator=(for_statement &&other)
+{
+    if (this != &other)
+    {
+        delete var_initializer;
+        delete condition;
+        delete post_iteration;
+        delete body;
+
+        var_initializer = other.var_initializer;
+        condition = other.condition;
+        post_iteration = other.post_iteration;
+        body = other.body;
+        other.var_initializer = nullptr;
+        other.condition = nullptr;
+        other.post_iteration = nullptr;
+        other.body = nullptr;
+        line_number = other.line_number;
+        start_position = other.start_position;
+        end_position = other.end_position;
+    }
+    return *this;
+}
+
+for_statement::~for_statement()
+{
+    delete var_initializer;
+    delete condition;
+    delete post_iteration;
+    delete body;
+}
+
+std::string for_statement::to_string() const
+{
+    return "FOR[" + (var_initializer ? var_initializer->to_string() : "NONE") + ", " + condition->to_string() + ", " + (post_iteration ? post_iteration->to_string() : "NONE") + " DO\n" + body->to_string() + "]\n";
+}
+
+loop_statement::loop_statement(loop_statement &&other)
+{
+    condition = other.condition;
+    body = other.body;
+    is_do_loop = other.is_do_loop;
+    other.condition = nullptr;
+    other.body = nullptr;
+    other.is_do_loop = false;
+    line_number = other.line_number;
+    start_position = other.start_position;
+    end_position = other.end_position;
+}
+
+loop_statement &loop_statement::operator=(loop_statement &&other)
+{
+    if (this != &other)
+    {
+        delete condition;
+        delete body;
+
+        condition = other.condition;
+        body = other.body;
+        is_do_loop = other.is_do_loop;
+        other.condition = nullptr;
+        other.body = nullptr;
+        other.is_do_loop = false;
+        line_number = other.line_number;
+        start_position = other.start_position;
+        end_position = other.end_position;
+    }
+    return *this;
+}
+
+loop_statement::~loop_statement()
+{
+    delete condition;
+    delete body;
+}
+
+std::string loop_statement::to_string() const
+{
+    if (is_do_loop)
+    {
+        return "DO[" + body->to_string() + " WHILE\n" + condition->to_string() + "]\n";
+    }
+    else
+    {
+        return "WHILE[" + condition->to_string() + " DO\n" + body->to_string() + "]\n";
+    }
+}
+
 sequence_statement::sequence_statement(std::vector<statement *> &&statements)
 {
     this->statements = std::move(statements);
@@ -174,4 +332,104 @@ reference declaration_statement::evaluate(execution_context &execution) const
             return result;
         }
     }
+}
+
+reference if_statement::evaluate(execution_context &execution) const
+{
+    variable condition_result = *condition->evaluate(execution);
+    if (!condition_result.is(variable_type::BOOLEAN))
+    {
+        throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+    }
+
+    if (condition_result.get_boolean())
+    {
+        return then_branch->evaluate(execution);
+    }
+    else if (else_branch != nullptr)
+    {
+        return else_branch->evaluate(execution);
+    }
+    else
+    {
+        return variable();
+    }
+}
+
+reference for_statement::evaluate([[maybe_unused]] execution_context &execution) const
+{
+    execution.push();
+    if (var_initializer)
+    {
+        var_initializer->evaluate(execution);
+    }
+
+    variable last_value = variable();
+
+    while (true)
+    {
+        // Check condition
+        variable condition_result = *condition->evaluate(execution);
+        if (!condition_result.is(variable_type::BOOLEAN))
+        {
+            throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+        }
+        if (!condition_result.get_boolean())
+        {
+            break;
+        }
+
+        last_value = *body->evaluate(execution);
+        if (post_iteration)
+        {
+            post_iteration->evaluate(execution);
+        }
+    }
+
+    execution.pop();
+    return last_value;
+}
+
+reference loop_statement::evaluate([[maybe_unused]] execution_context &execution) const
+{
+    variable last_value = variable();
+
+    if (is_do_loop)
+    {
+        while (true)
+        {
+            last_value = *body->evaluate(execution);
+
+            // Check condition
+            variable condition_result = *condition->evaluate(execution);
+            if (!condition_result.is(variable_type::BOOLEAN))
+            {
+                throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+            }
+            if (!condition_result.get_boolean())
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        while (true)
+        {
+            // Check condition
+            variable condition_result = *condition->evaluate(execution);
+            if (!condition_result.is(variable_type::BOOLEAN))
+            {
+                throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+            }
+            if (!condition_result.get_boolean())
+            {
+                break;
+            }
+
+            last_value = *body->evaluate(execution);
+        }
+    }
+
+    return last_value;
 }

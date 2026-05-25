@@ -408,6 +408,82 @@ reference binary_expression::evaluate(execution_context &execution) const
         {
             throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
+    case token_type::ADD_ASSIGN:
+        if (lhs.is_modifiable_reference())
+        {
+            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            {
+                *lhs = variable(lhs->get_number() + rhs->get_number());
+                return lhs;
+            }
+            else if (lhs->is(variable_type::STRING) && rhs->is(variable_type::STRING))
+            {
+                lentus_string *left_string = lhs->get_string();
+                lentus_string *right_string = rhs->get_string();
+                lentus_string *new_string = new lentus_string(std::string(**left_string + **right_string));
+                *lhs = variable(execution.get_program().create_string(new_string));
+                return lhs;
+            }
+            else
+            {
+                throw lentus_runtime_exception(std::string("Invalid / mismatched types in '+=': lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            }
+        }
+        else
+        {
+            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+        }
+    case token_type::SUBTRACT_ASSIGN:
+        if (lhs.is_modifiable_reference())
+        {
+            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            {
+                *lhs = variable(lhs->get_number() - rhs->get_number());
+                return lhs;
+            }
+            else
+            {
+                throw lentus_runtime_exception(std::string("Invalid types in '-=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            }
+        }
+        else
+        {
+            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+        }
+    case token_type::MULTIPLY_ASSIGN:
+        if (lhs.is_modifiable_reference())
+        {
+            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            {
+                *lhs = variable(lhs->get_number() * rhs->get_number());
+                return lhs;
+            }
+            else
+            {
+                throw lentus_runtime_exception(std::string("Invalid types in '*=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            }
+        }
+        else
+        {
+            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+        }
+    case token_type::DIVIDE_ASSIGN:
+        if (lhs.is_modifiable_reference())
+        {
+            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            {
+                *lhs = variable(lhs->get_number() / rhs->get_number());
+                return lhs;
+            }
+            else
+            {
+                throw lentus_runtime_exception(std::string("Invalid types in '/=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            }
+        }
+        else
+        {
+            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+        }
     default:
         throw lentus_runtime_exception("Invalid binary operator token " + op.to_string(), this);
     }

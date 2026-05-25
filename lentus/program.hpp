@@ -95,4 +95,32 @@ public:
     const ast_node *get_node() const { return node; }
 };
 
+// The following exceptions are used for handling control flow. They are not "errors" but expected exceptions to be caught during execution.
+
+class break_signal : public std::exception
+{
+public:
+    break_signal() = default;
+    const char *what() const noexcept { return "Break statement"; }
+};
+
+class continue_signal : public std::exception
+{
+public:
+    continue_signal() = default;
+    const char *what() const noexcept { return "Continue statement"; }
+};
+
+class return_signal : public std::exception
+{
+private:
+    variable return_value;
+
+public:
+    return_signal(variable value) : return_value(value) {}
+    return_signal(variable &&value) : return_value(std::move(value)) {}
+    variable get_return_value() const { return return_value; }
+    const char *what() const noexcept { return "Return statement"; }
+};
+
 #endif

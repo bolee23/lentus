@@ -145,6 +145,8 @@ parse_result<expression> parse_left_associative(parser_data &data, F function, s
 }
 
 parse_result<expression> parse_expression(parser_data &data);
+parse_result<statement> parse_statement(parser_data &data, bool allow_declarations = true);
+parse_result<statement> parse_sequence(parser_data &data);
 
 parse_result<expression> parse_primary(parser_data &data)
 {
@@ -246,12 +248,12 @@ parse_result<expression> parse_call(parser_data &data)
     return {expr, error};
 }
 
-parse_result<expression> parse_unary(parser_data &data)
+parse_result<expression> parse_not_subtract(parser_data &data)
 {
     if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_unary(data);
+        parse_result<expression> operand_result = parse_not_subtract(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
@@ -262,7 +264,7 @@ parse_result<expression> parse_unary(parser_data &data)
 
 parse_result<expression> parse_factor(parser_data &data)
 {
-    return parse_left_associative(data, parse_unary, {token_type::MULTIPLY, token_type::DIVIDE});
+    return parse_left_associative(data, parse_not_subtract, {token_type::MULTIPLY, token_type::DIVIDE});
 }
 
 parse_result<expression> parse_term(parser_data &data)
@@ -290,7 +292,7 @@ parse_result<expression> parse_logical_or(parser_data &data)
     return parse_left_associative(data, parse_logical_and, {token_type::OR});
 }
 
-parse_result<expression> parse_assignment(parser_data &data)
+parse_result<expression> parse_direct_assignment(parser_data &data)
 {
     parse_result<expression> left_result = parse_logical_or(data);
     expression *left = left_result.ast;
@@ -298,7 +300,25 @@ parse_result<expression> parse_assignment(parser_data &data)
     if (match_and_consume(data, token_type::ASSIGN))
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> right_result = parse_assignment(data);
+        parse_result<expression> right_result = parse_direct_assignment(data);
+        expression *right = right_result.ast;
+        bool error = left_result.error || right_result.error;
+
+        return {new binary_expression(op, left, right), error};
+    }
+
+    return left_result;
+}
+
+parse_result<expression> parse_compound_assignment(parser_data &data)
+{
+    parse_result<expression> left_result = parse_direct_assignment(data);
+    expression *left = left_result.ast;
+
+    if (match_and_consume(data, {token_type::ADD_ASSIGN, token_type::SUBTRACT_ASSIGN, token_type::MULTIPLY_ASSIGN, token_type::DIVIDE_ASSIGN}))
+    {
+        token op = data.tokens[data.position - 1];
+        parse_result<expression> right_result = parse_compound_assignment(data);
         expression *right = right_result.ast;
         bool error = left_result.error || right_result.error;
 
@@ -310,7 +330,7 @@ parse_result<expression> parse_assignment(parser_data &data)
 
 parse_result<expression> parse_expression(parser_data &data)
 {
-    return parse_assignment(data);
+    return parse_compound_assignment(data);
 }
 
 std::vector<source_line> split_lines(const std::string &source_string)
@@ -398,14 +418,193 @@ parse_result<statement> parse_expression_statement(parser_data &data)
     }
 }
 
-parse_result<statement> parse_statement(parser_data &data)
+parse_result<statement> parse_for_statement(parser_data &data)
 {
-    if (match_and_consume(data, token_type::VAR))
+    if (!match_and_consume(data, token_type::LEFT_BRACKET))
     {
-        return parse_declaration(data);
+        write_expectation_error_message(data, "'(' after 'for'");
+        return {new error_statement(), true};
     }
-    else // Parse expression statement
+    int line_number = data.tokens[data.position - 1].get_line_number();
+    int start_position = data.tokens[data.position - 1].get_start_position();
+    int end_position;
+
+    statement *initializer = nullptr;
+    bool error = false;
+
+    parse_result<statement> initializer_result = parse_statement(data);
+    initializer = initializer_result.ast;
+    error |= initializer_result.error;
+
+    parse_result<expression> condition_result = parse_expression(data);
+    error |= condition_result.error;
+
+    if (!match_and_consume(data, token_type::END_STATEMENT))
     {
+        write_expectation_error_message(data, "';' after loop condition");
+        delete initializer;
+        delete condition_result.ast;
+        return {new error_statement(), true};
+    }
+
+    expression *post_iteration = nullptr;
+
+    if (!check(data, token_type::RIGHT_BRACKET)) // Skip post-iteration if there is an immediate right bracket "for(initializer; condition;) { body }"
+    {
+        parse_result<expression> post_iteration_result = parse_expression(data);
+        error |= post_iteration_result.error;
+        post_iteration = post_iteration_result.ast;
+    }
+
+    // Actually try consume the )
+    if (!match_and_consume(data, token_type::RIGHT_BRACKET))
+    {
+        write_expectation_error_message(data, "')' after for clauses");
+        delete initializer;
+        delete condition_result.ast;
+        delete post_iteration;
+        return {new error_statement(), true};
+    }
+
+    parse_result<statement> body_result = parse_statement(data);
+    error |= body_result.error;
+
+    end_position = body_result.ast->get_end_position();
+
+    return {new for_statement(initializer, condition_result.ast, post_iteration, body_result.ast, line_number, start_position, end_position), error};
+}
+
+parse_result<statement> parse_while_statement(parser_data &data)
+{
+    parse_result<expression> condition_result = parse_expression(data);
+    bool error = condition_result.error;
+    int line_number = condition_result.ast->get_line_number();
+    int start_position = condition_result.ast->get_start_position();
+
+    parse_result<statement> body_result = parse_statement(data);
+    error |= body_result.error;
+    int end_position = body_result.ast->get_end_position();
+
+    return {new loop_statement(condition_result.ast, body_result.ast, false, line_number, start_position, end_position), error};
+}
+
+parse_result<statement> parse_do_statement(parser_data &data)
+{
+    parse_result<statement> body_result = parse_statement(data);
+    bool error = body_result.error;
+    int line_number = body_result.ast->get_line_number();
+    int start_position = body_result.ast->get_start_position();
+
+    if (!match_and_consume(data, token_type::WHILE))
+    {
+        write_expectation_error_message(data, "'while' after 'do' statement body");
+        return {new error_statement(), true};
+    }
+
+    parse_result<expression> condition_result = parse_expression(data);
+    error |= condition_result.error;
+    int end_position = condition_result.ast->get_end_position();
+
+    if (!match_and_consume(data, token_type::END_STATEMENT))
+    {
+        write_expectation_error_message(data, "';' after 'while'");
+        return {new error_statement(), true};
+    }
+
+    return {new loop_statement(condition_result.ast, body_result.ast, true, line_number, start_position, end_position), error};
+}
+
+parse_result<statement> parse_if_statement(parser_data &data)
+{
+    parse_result<expression> condition_result = parse_expression(data);
+    bool error = condition_result.error;
+    int line_number = condition_result.ast->get_line_number();
+    int start_position = condition_result.ast->get_start_position();
+
+    parse_result<statement> then_branch_result = parse_statement(data, false);
+    if (then_branch_result.error)
+    {
+        delete condition_result.ast;
+        return {new error_statement(), true};
+    }
+
+    int end_position = data.tokens[data.position - 1].get_end_position();
+
+    // Else (optional)
+    statement *else_branch = nullptr;
+    if (match_and_consume(data, token_type::ELSE))
+    {
+        parse_result<statement> else_branch_result = parse_statement(data, false);
+        error |= else_branch_result.error;
+        else_branch = else_branch_result.ast;
+
+        end_position = data.tokens[data.position - 1].get_end_position();
+    }
+
+    return {new if_statement(condition_result.ast, then_branch_result.ast, else_branch, line_number, start_position, end_position), error};
+}
+
+parse_result<statement> parse_braced_sequence(parser_data &data)
+{
+    std::vector<statement *> statements;
+    bool error = false;
+
+    while (data.position < (int)data.tokens.size())
+    {
+        if (match_and_consume(data, token_type::RIGHT_BRACE))
+        {
+            return {new sequence_statement(std::move(statements)), error};
+        }
+        parse_result<statement> stmt_result = parse_statement(data);
+        statements.push_back(stmt_result.ast);
+        error |= stmt_result.error;
+    }
+
+    // EOF before closing brace
+    write_expectation_error_message(data, "'}' here");
+    return {new sequence_statement(std::move(statements)), true};
+}
+
+parse_result<statement> parse_statement(parser_data &data, bool allow_declarations)
+{
+    if (data.position >= (int)data.tokens.size())
+    {
+        write_error_message(data, "Unexpected end of input, expected statement");
+        return {new error_statement(), true};
+    }
+
+    switch (data.tokens[data.position].get_type())
+    {
+    case token_type::END_STATEMENT: 
+        // ';' extra semicolon counts as an empty statement
+        // This may be needed ie to skip the initializer statement in a for loop.
+        data.position++;
+        return {new empty_statement(), false};
+    case token_type::FOR:
+        data.position++;
+        return parse_for_statement(data);
+    case token_type::WHILE:
+        data.position++;
+        return parse_while_statement(data);
+    case token_type::DO:
+        data.position++;
+        return parse_do_statement(data);
+    case token_type::LEFT_BRACE:
+        data.position++;
+        return parse_braced_sequence(data);
+    case token_type::IF:
+        data.position++;
+        return parse_if_statement(data);
+    case token_type::VAR:
+        if (!allow_declarations)
+        {
+            write_error_message(data, "Variable declarations are not allowed here");
+            data.position++;
+            return {new error_statement(), true};
+        }
+        data.position++;
+        return parse_declaration(data);
+    default:
         return parse_expression_statement(data);
     }
 }

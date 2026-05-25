@@ -78,6 +78,10 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     program_module *created_module = opt.value();
     modules[path] = created_module;
 
+    if(lp_debug)
+    {
+        std::cout << "Result:" << std::endl;
+    }
     // Execute module
     execution_context execution(this);
 

@@ -52,6 +52,7 @@ enum class token_type : int
     IF,       /** if */
     ELSE,     /** else */
     WHILE,    /** while */
+    DO,       /** do */
     FOR,      /** for */
     RETURN,   /** return */
     BREAK,    /** break */
