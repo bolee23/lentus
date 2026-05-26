@@ -322,7 +322,8 @@ reference declaration_statement::evaluate(execution_context &execution) const
         }
         else
         {
-            variable &result = *value->evaluate(execution);
+            reference ref = value->evaluate(execution);
+            variable &result = *ref;
             frame.local_variables->operator[](this->identifier) = result;
             return result;
         }

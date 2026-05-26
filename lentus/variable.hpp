@@ -295,7 +295,7 @@ public:
     }
 
     const variable get() const { return is_modifiable ? *modifiable_value : direct_value; }
-    const variable operator*() const { return is_modifiable ? *modifiable_value : direct_value; }
+    const variable &operator*() const { return is_modifiable ? *modifiable_value : direct_value; }
     const variable *operator->() const { return is_modifiable ? modifiable_value : &direct_value; }
 
     /**

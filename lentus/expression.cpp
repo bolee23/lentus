@@ -3,6 +3,7 @@
 #include "execution.hpp"
 #include <iostream>
 #include "function.hpp"
+#include <algorithm>
 
 unary_expression::unary_expression(unary_expression &&other)
 {
@@ -555,19 +556,35 @@ reference function_expression::evaluate(execution_context &execution) const
 {
     program_module *current_module = execution.get_current_module();
     std::vector<stack_frame> stack = execution.get_stack();
+    lentus_function *current_fn = execution.get_current_function();
 
-    // capture stack
     std::vector<lentus_table *> captured_stack;
 
-    // Capture locals in same module.
-    for (const stack_frame &frame : stack)
+    // Capture local variables
+    for (int i = stack.size(); i >= 0; i--)
     {
+        stack_frame &frame = stack[i];
         if (frame.current_module != current_module)
         {
             break;
         }
         captured_stack.push_back(frame.local_variables);
     }
+
+        // Capture local variables from current function
+    if (current_fn != nullptr)
+    {
+        std::vector<lentus_table *> previous_captured_stack = current_fn->get_captured_variable_tables();
+        for (int i = previous_captured_stack.size(); i >= 0; i--)
+        {
+            captured_stack.push_back(previous_captured_stack[i]);
+        }
+    }
+
+    // after reversing
+    // local variables at the end (higher priority)
+    // captures from other functions at the start (lower priority)
+    std::reverse(captured_stack.begin(), captured_stack.end());
 
     return execution.get_program().create_function(new lentus_function(name, body, &parameter_names, current_module, std::move(captured_stack)));
 }

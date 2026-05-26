@@ -55,7 +55,7 @@ void handle_number(lexer_data &data)
 {
     // i will eventually contain the index of the last character + 1
     int i;
-    char last_char;
+    char last_char = '\0';
     int start_position = data.position;
 
     // Loop breaks if end of file reached or non alphanumeric character reached
