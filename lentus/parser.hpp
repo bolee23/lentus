@@ -25,7 +25,7 @@ struct parser_data
     const std::vector<token> &tokens;
     const std::string &source_string;
     const std::vector<source_line> &lines;
-    std::vector<variable_block *> &literal_blocks;
+    std::vector<variable_block *> &constant_blocks;
     std::ostream &error_stream;
     bool error_found = false;
 

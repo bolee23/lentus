@@ -9,6 +9,8 @@
 #include "variable.hpp"
 #include "ast-node.hpp"
 
+class lentus_function;
+
 class expression : public ast_node
 {
 };
@@ -112,7 +114,17 @@ public:
         this->start_position = start_position;
         this->end_position = end_position;
     }
+
+    /**
+     * Create string literal
+     */
     literal_expression(lentus_string *string, int line_number, int start_position, int end_position);
+
+    /**
+     * Create function literal
+     */
+    literal_expression(lentus_function *function, int line_number, int start_position, int end_position);
+
     literal_expression(const literal_expression &other) = delete;
     literal_expression &operator=(const literal_expression &other) = delete;
 
@@ -215,6 +227,38 @@ public:
 
     virtual std::string to_string() const override;
     ~call_expression() override = default;
+};
+
+
+
+class function_expression : public expression
+{
+private:
+    lentus_string *name; // optional
+    statement *body;
+    std::vector<lentus_string*> parameter_names;
+
+public:
+    function_expression(lentus_string *name, statement *body, std::vector<lentus_string*> &&parameter_names, int line_number, int start_position, int end_position) : name(name), body(body), parameter_names(std::move(parameter_names))
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    function_expression(const function_expression &other) = delete;
+    function_expression &operator=(const function_expression &other) = delete;
+
+    function_expression(function_expression &&other);
+    function_expression &operator=(function_expression &&other);
+
+    reference evaluate(execution_context &execution) const override;
+    const lentus_string *get_name() const { return name; }
+    const statement *get_body() const { return body; }
+    const std::vector<lentus_string*> &get_parameter_names() const { return parameter_names; }
+
+    virtual std::string to_string() const override;
+    ~function_expression() override;
 };
 
 #endif

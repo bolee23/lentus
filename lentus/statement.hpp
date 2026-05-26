@@ -31,18 +31,11 @@ public:
 class declaration_statement : public statement
 {
 private:
-    std::string identifier;
+    variable identifier;
     expression *value; /** nullptr if not initialized */
 
 public:
-    declaration_statement(const std::string &identifier, expression *value, int line_number, int start_position, int end_position) : identifier(identifier), value(value)
-    {
-        this->line_number = line_number;
-        this->start_position = start_position;
-        this->end_position = end_position;
-    }
-
-    declaration_statement(const std::string &&identifier, expression *value, int line_number, int start_position, int end_position) : identifier(std::move(identifier)), value(value)
+    declaration_statement(lentus_string *identifier, expression *value, int line_number, int start_position, int end_position) : identifier(identifier), value(value)
     {
         this->line_number = line_number;
         this->start_position = start_position;
@@ -55,7 +48,7 @@ public:
     declaration_statement(declaration_statement &&other);
     declaration_statement &operator=(declaration_statement &&other);
 
-    const std::string &get_identifier() const { return identifier; }
+    const lentus_string &get_identifier() const { return *identifier.get_string(); }
     expression *get_value() const { return value; }
 
     reference evaluate(execution_context &execution) const override;

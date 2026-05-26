@@ -1,6 +1,7 @@
 #include "token.hpp"
 #include <string>
 #include "magic_enum.hpp"
+#include <format>
 
 token::token(const token &tok)
 {
@@ -156,7 +157,7 @@ std::string token::to_string() const
     case token_type::STRING:
         return "STRING(\"" + *string_constant + "\")";
     case token_type::NUMBER:
-        return "NUMBER(" + std::to_string(number_constant) + ")";
+        return "NUMBER(" + std::format("{:g}", number_constant) + ")";
     default:
         return std::string(magic_enum::enum_name(type));
     }

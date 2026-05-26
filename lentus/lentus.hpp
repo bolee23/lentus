@@ -6,6 +6,7 @@
 #include "ast-node.hpp"
 
 #include "variable.hpp"
+#include "function.hpp"
 #include "expression.hpp"
 #include "parser.hpp"
 

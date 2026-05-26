@@ -1,0 +1,19 @@
+func make_function_that_returns_five() {
+    var num = 5;
+
+    // when this is evaluated it should capture num
+    func internal() {
+        num; // return keyword is not supported yet, temporary syntax for now
+    }
+
+    internal; // return
+}
+
+var first_evaluation = make_function_that_returns_five();
+print_line("First evaluation: ", first_evaluation); // the function
+
+var second_evaluation = first_evaluation();
+print_line("Second evaluation: ", second_evaluation); // 5
+
+// can't use num regularly from here
+print_line(num); // error

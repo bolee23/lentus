@@ -2,6 +2,7 @@
 #include "program.hpp"
 #include "execution.hpp"
 #include <iostream>
+#include "function.hpp"
 
 unary_expression::unary_expression(unary_expression &&other)
 {
@@ -93,9 +94,17 @@ grouping_expression::~grouping_expression()
     delete inner_expression;
 }
 
-literal_expression::literal_expression(lentus_string* string, int line_number, int start_position, int end_position)
+literal_expression::literal_expression(lentus_string *string, int line_number, int start_position, int end_position)
 {
     this->value = variable(string);
+    this->line_number = line_number;
+    this->start_position = start_position;
+    this->end_position = end_position;
+}
+
+literal_expression::literal_expression(lentus_function *function, int line_number, int start_position, int end_position)
+{
+    this->value = variable(function);
     this->line_number = line_number;
     this->start_position = start_position;
     this->end_position = end_position;
@@ -118,7 +127,6 @@ literal_expression &literal_expression::operator=(literal_expression &&other)
 
 literal_expression::~literal_expression()
 {
-
 }
 
 std::string literal_expression::to_string() const
@@ -133,6 +141,8 @@ std::string literal_expression::to_string() const
         return std::to_string(value.get_number());
     case variable_type::STRING:
         return "\"" + value.get_string()->get_value() + "\"";
+    case variable_type::FUNCTION:
+        return value.get_function()->to_string();
     default:
         return "literal";
     }
@@ -267,10 +277,11 @@ reference binary_expression::evaluate(execution_context &execution) const
         {
             lentus_string *left_string = lhs->get_string();
             lentus_string *right_string = rhs->get_string();
-            lentus_string *new_string = new lentus_string(std::string((*left_string)->size() + (*right_string)->size(), '\0'));
-            (*new_string)->append(left_string->get_value());
-            (*new_string)->append(right_string->get_value());
-            return reference(execution.get_program().create_string(new_string));
+            std::string str;
+            str.reserve(left_string->get_value().size() + right_string->get_value().size());
+            str.append(left_string->get_value());
+            str.append(right_string->get_value());
+            return reference(execution.get_program().create_string(std::move(str)));
         }
         else
         {
@@ -487,12 +498,6 @@ reference identifier_expression::evaluate(execution_context &execution) const
     }
     else
     {
-        // temporary hardwiring to supprort print function
-        if (identifier == "print")
-        {
-
-            return reference(execution.get_program().create_string("print_temporary"));
-        }
         throw lentus_runtime_exception(std::string("Unrecognized symbol " + identifier), this);
     }
 }
@@ -500,15 +505,89 @@ reference identifier_expression::evaluate(execution_context &execution) const
 reference call_expression::evaluate(execution_context &execution) const
 {
     reference callee_var = callee->evaluate(execution);
-    // temporary hardwiring to support print function (no function variable type yet)
-    if (callee_var->is(variable_type::STRING) && **callee_var->get_string() == "print_temporary")
+    if (callee_var->is(variable_type::FUNCTION))
     {
-        // Print arguments seperated by commas.
-        for (int i = 0; i < (int)arguments.size(); i++)
+        function *fn = callee_var->get_function();
+        std::vector<variable> argument_values;
+        for (expression *argument : arguments)
         {
-            std::cout << arguments[i]->evaluate(execution)->to_string();
+            argument_values.push_back(argument->evaluate(execution).get());
         }
-        std::cout << std::endl;
+        return fn->evaluate(execution, argument_values, this);
     }
+    else
+    {
+        throw lentus_runtime_exception(std::string("Attempted to call a non-function value of type ") + callee_var->get_type_name(), this);
+    }
+
     return variable();
+}
+
+function_expression::function_expression(function_expression &&other)
+{
+    name = other.name;
+    other.name = nullptr;
+    body = other.body;
+    other.body = nullptr;
+    parameter_names = std::move(other.parameter_names);
+    this->line_number = other.line_number;
+    this->start_position = other.start_position;
+    this->end_position = other.end_position;
+}
+
+function_expression &function_expression::operator=(function_expression &&other)
+{
+    if (this != &other)
+    {
+        name = other.name;
+        other.name = nullptr;
+        body = other.body;
+        other.body = nullptr;
+        parameter_names = std::move(other.parameter_names);
+        this->line_number = other.line_number;
+        this->start_position = other.start_position;
+        this->end_position = other.end_position;
+    }
+    return *this;
+}
+
+reference function_expression::evaluate(execution_context &execution) const
+{
+    program_module *current_module = execution.get_current_module();
+    std::vector<stack_frame> stack = execution.get_stack();
+
+    // capture stack
+    std::vector<lentus_table *> captured_stack;
+
+    // Capture locals in same module.
+    for (const stack_frame &frame : stack)
+    {
+        if (frame.current_module != current_module)
+        {
+            break;
+        }
+        captured_stack.push_back(frame.local_variables);
+    }
+
+    return execution.get_program().create_function(new lentus_function(name, body, &parameter_names, current_module, std::move(captured_stack)));
+}
+
+std::string function_expression::to_string() const
+{
+    std::string str = "FUNCTION[";
+    if (name != nullptr)
+    {
+        str += name->get_value();
+    }
+    else
+    {
+        str += "<anonymous>";
+    }
+    str += "] {\n" + body->to_string() + "}";
+    return str;
+}
+
+function_expression::~function_expression()
+{
+    delete body;
 }

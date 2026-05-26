@@ -14,8 +14,12 @@ class program
 private:
     std::unordered_map<std::filesystem::path, program_module *> modules;
     std::vector<variable_block *> variable_blocks; /** List of all dynamically allocated variable_blocks in the program */
-    std::vector<variable_block *> literal_blocks;  /** List of all variable_blocks created from literals in the module for deallocation */
+    std::vector<variable_block *> constant_blocks; /** List of all variable_blocks that should live forever (ie literal strings, functions). Allocated during parsing */
 
+    /**
+     * Map of native functions that are available in the language by default.
+     */
+    std::unordered_map<std::string, function *> native_functions;
     anonymous_module anon_module;
 
 public:
@@ -34,6 +38,17 @@ public:
      * @return The same variable
      */
     variable track_variable(variable var);
+
+    /**
+     * Track the given native function.
+     * Native functions are only deallocated when the program is deallocated.
+     */
+    function *track_native_function(function *fn);
+
+    /**
+     * Creates a variable that holds a pointer to the given lentus_function and tracks the lentus_function for deallocation.
+     */
+    variable create_function(lentus_function *fn);
 
     /**
      * Creates a variable that holds a pointer to the given lentus_string and tracks the lentus_string for deallocation.
@@ -86,6 +101,9 @@ public:
      * @return The result of the execution as a variable, or std::nullopt if there was an error during execution
      */
     std::optional<variable *> execute_anonymous_module(const std::string &str, std::ostream &error_stream);
+
+    const std::unordered_map<std::string, function *> &get_native_functions() const { return native_functions; }
+    std::unordered_map<std::string, function *> &get_native_functions() { return native_functions; }
 };
 
 class lentus_runtime_exception : public std::exception

@@ -4,10 +4,13 @@
 #include "program.hpp"
 #include "variable.hpp"
 
+class lentus_function;
+
 struct stack_frame
 {
     program_module *current_module;
-    std::unordered_map<std::string, variable> local_variables;
+    lentus_function *current_function; // Optional to indicate this frame is in a function call (nullptr if not in a function)
+    lentus_table *local_variables;
 };
 
 class execution_context
@@ -20,7 +23,6 @@ public:
     execution_context(program *prgm) : stack(), prgm(prgm) {}
 
     std::optional<reference> execute_function(variable *function, std::vector<variable *> &arguments);
-
     std::optional<reference> execute_module(program_module *module);
 
     program &get_program() { return *prgm; }
@@ -31,13 +33,21 @@ public:
      * @param current_module the module to push
      * @return the new stack frame
      */
-    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module); }
+    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module, stack.empty() ? nullptr : peek().current_function, prgm->create_empty_table()); }
+
+    /**
+     * Push a new stack frame for executing a new non-native function onto the stack
+     * @param current_function the function to push
+     * @return the new stack frame
+     */
+    stack_frame &push_new_function(lentus_function *current_function);
 
     /**
      * Push a new stack frame
+     * Current module and function are inherited from the previous stack frame
      * @return the new stack frame
      */
-    stack_frame &push() { return stack.emplace_back(peek().current_module); }
+    stack_frame &push() { return stack.emplace_back(peek().current_module, peek().current_function, prgm->create_empty_table()); }
 
     /**
      * Get the current stack frame
@@ -79,6 +89,12 @@ public:
      * @return the module or nullptr if no module is being executed
      */
     program_module *get_current_module();
+
+    /**
+     * Get the current function that is being executed
+     * @return the function or nullptr if no function is being executed
+     */
+    lentus_function *get_current_function();
 
     /**
      * Searches down the stack for the nearest definition of a local or global variable with a given identifier

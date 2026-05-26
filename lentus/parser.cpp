@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include <iostream>
+#include "function.hpp"
 
 void write_error_message(parser_data &data, const std::string &message)
 {
@@ -178,7 +179,7 @@ parse_result<expression> parse_primary(parser_data &data)
     {
         data.position++;
         lentus_string *string_constant = new lentus_string(*current.get_string_constant());
-        data.literal_blocks.push_back(string_constant);
+        data.constant_blocks.push_back(string_constant);
         return {new literal_expression(variable(string_constant), line_number, start_position, end_position), false};
     }
     case token_type::LEFT_BRACKET:
@@ -371,7 +372,9 @@ parse_result<statement> parse_declaration(parser_data &data)
     if (match_and_consume(data, token_type::IDENTIFIER))
     {
         const token &identifier_token = data.tokens[data.position - 1];
-        const std::string *identifier = identifier_token.get_identifier_name();
+        lentus_string *identifier = new lentus_string(*identifier_token.get_identifier_name());
+        data.constant_blocks.push_back(identifier);
+
         int line_number = identifier_token.get_line_number();
         int start_position = identifier_token.get_start_position();
 
@@ -388,7 +391,7 @@ parse_result<statement> parse_declaration(parser_data &data)
                 return {new error_statement(), true};
             }
 
-            return {new declaration_statement(*identifier, value, line_number, start_position, value->get_end_position()), error};
+            return {new declaration_statement(identifier, value, line_number, start_position, value->get_end_position()), error};
         }
         else
         {
@@ -399,7 +402,7 @@ parse_result<statement> parse_declaration(parser_data &data)
             }
 
             int end_position = identifier_token.get_end_position();
-            return {new declaration_statement(*identifier, nullptr, line_number, start_position, end_position), false};
+            return {new declaration_statement(identifier, nullptr, line_number, start_position, end_position), false};
         }
     }
     else
@@ -570,6 +573,67 @@ parse_result<statement> parse_braced_sequence(parser_data &data)
     return {new sequence_statement(std::move(statements)), true};
 }
 
+parse_result<statement> parse_function_declaration(parser_data &data)
+{
+    if (!match_and_consume(data, token_type::IDENTIFIER))
+    {
+        write_expectation_error_message(data, "function name after 'function'");
+        return {new error_statement(), true};
+    }
+
+    const token &identifier_token = data.tokens[data.position - 1];
+    lentus_string *identifier = new lentus_string(*identifier_token.get_identifier_name());
+    data.constant_blocks.push_back(identifier);
+    int line_number = identifier_token.get_line_number();
+    int start_position = identifier_token.get_start_position();
+
+    if (!match_and_consume(data, token_type::LEFT_BRACKET))
+    {
+        write_expectation_error_message(data, "'(' after function name");
+        return {new error_statement(), true};
+    }
+
+    std::vector<lentus_string *> parameters;
+
+    while (!match_and_consume(data, token_type::RIGHT_BRACKET))
+    {
+        // Consume "var" before parameter name but this is optional.
+        // function(var x) and function(x) are allowed.
+        match_and_consume(data, token_type::VAR);
+
+        if (!match_and_consume(data, token_type::IDENTIFIER))
+        {
+            write_expectation_error_message(data, "parameter name in function declaration");
+            return {new error_statement(), true};
+        }
+
+        lentus_string *param = new lentus_string(*data.tokens[data.position - 1].get_identifier_name());
+        data.constant_blocks.push_back(param);
+        parameters.push_back(param);
+
+        // If there is a comma, consume it and continue to the next parameter. Otherwise, expect a right bracket.
+        if (!match_and_consume(data, token_type::COMMA))
+        {
+            if (!check(data, token_type::RIGHT_BRACKET))
+            {
+                write_expectation_error_message(data, "')' or ',' after parameter in function declaration");
+                return {new error_statement(), true};
+            }
+        }
+    }
+
+    parse_result<statement> body_result = parse_statement(data);
+    bool error = body_result.error;
+    int end_position = body_result.ast->get_end_position();
+
+    // The function
+    function_expression *fn = new function_expression(identifier, body_result.ast, std::move(parameters), line_number, start_position, end_position);
+
+    // The variable declaration statement that declares the function name and assigns the function to it
+    declaration_statement *declaration = new declaration_statement(identifier, fn, line_number, start_position, end_position);
+    return {declaration, error};
+}
+
 parse_result<statement> parse_statement(parser_data &data, bool allow_declarations)
 {
     if (data.position >= (int)data.tokens.size())
@@ -580,6 +644,15 @@ parse_result<statement> parse_statement(parser_data &data, bool allow_declaratio
 
     switch (data.tokens[data.position].get_type())
     {
+    case token_type::FUNCTION:
+        if (!allow_declarations)
+        {
+            write_error_message(data, "Function declarations are not allowed here");
+            data.position++;
+            return {new error_statement(), true};
+        }
+        data.position++;
+        return parse_function_declaration(data);
     case token_type::END_STATEMENT:
         // ';' extra semicolon counts as an empty statement
         // This may be needed ie to skip the initializer statement in a for loop.

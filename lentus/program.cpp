@@ -3,6 +3,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "execution.hpp"
+#include "function.hpp"
 
 variable program::track_variable(variable var)
 {
@@ -22,6 +23,18 @@ variable program::track_variable(variable var)
     return var;
 }
 
+variable program::create_function(lentus_function *fn)
+{
+    variable_blocks.push_back(fn);
+    return variable(fn);
+}
+
+function* program::track_native_function(function *fn)
+{
+    constant_blocks.push_back(fn);
+    return fn;
+}
+
 variable program::create_string(lentus_string *ptr)
 {
     variable_blocks.push_back(ptr);
@@ -30,7 +43,7 @@ variable program::create_string(lentus_string *ptr)
 
 variable program::create_string_literal(lentus_string *ptr)
 {
-    literal_blocks.push_back(ptr);
+    constant_blocks.push_back(ptr);
     return variable(ptr);
 }
 
@@ -75,7 +88,7 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     }
 
     // Create module
-    std::optional<program_module *> opt = create_module(this->literal_blocks, path, error_stream, this->create_empty_table(), lp_debug);
+    std::optional<program_module *> opt = create_module(this->constant_blocks, path, error_stream, this->create_empty_table(), lp_debug);
     if (!opt)
     {
         return std::nullopt;
@@ -101,12 +114,21 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     return std::make_optional(created_module);
 }
 
-program::program() : anon_module(create_empty_table()) {}
+program::program() : anon_module(create_empty_table())
+{
+    native_functions = {
+        {"print", track_native_function(new print_function())},
+        {"print_line", track_native_function(new print_line_function())},
+        {"number", track_native_function(new number_cast_function())},
+        {"string", track_native_function(new string_cast_function())},
+    };
+}
 
 program::program(program &&prog) : anon_module(std::move(prog.anon_module))
 {
     this->modules = std::move(prog.modules);
     this->variable_blocks = std::move(prog.variable_blocks);
+    this->constant_blocks = std::move(prog.constant_blocks);
 }
 
 program &program::operator=(program &&prog)
@@ -115,6 +137,7 @@ program &program::operator=(program &&prog)
     {
         this->modules = std::move(prog.modules);
         this->variable_blocks = std::move(prog.variable_blocks);
+        this->constant_blocks = std::move(prog.constant_blocks);
         this->anon_module = std::move(prog.anon_module);
     }
     return *this;
@@ -132,7 +155,7 @@ program::~program()
         delete var;
     }
 
-    for (variable_block *var : literal_blocks)
+    for (variable_block *var : constant_blocks)
     {
         delete var;
     }

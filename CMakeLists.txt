@@ -28,6 +28,7 @@ set(LENTUS_SOURCES
   lentus/program.cpp
   lentus/program-module.cpp
   lentus/execution.cpp
+  lentus/function.cpp
 )
 
 # Lentus executable

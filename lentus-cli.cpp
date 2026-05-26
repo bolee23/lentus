@@ -22,17 +22,11 @@ int main(int argc, char **argv)
             }
         }
 
-        program *prgm = new program();
-        std::optional<program_module *> opt = prgm->load_module(source_path, std::cout, debug_mode);
+        program prgm;
+        std::optional<program_module *> opt = prgm.load_module(source_path, std::cout, debug_mode);
 
         if (opt)
         {
-            std::string s;
-            std::cout << "a";
-            std::cin >> s;
-            delete prgm;
-            std::cout << "b";
-            std::cin >> s;
             return 0;
         }
         else

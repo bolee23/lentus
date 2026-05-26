@@ -53,8 +53,6 @@ const std::unordered_map<std::string, token_type> keywords = {
 
 void handle_number(lexer_data &data)
 {
-    char c = data.source[data.position];
-
     // i will eventually contain the index of the last character + 1
     int i;
     char last_char;
@@ -266,20 +264,21 @@ bool handle_comment(lexer_data &data)
                         data.line_number++;
                         data.line_start_position = i + 1;
                         data.position = i + 1; // Update position to be after the comment
-                        break;
+                        return true;
                     }
                 }
+                data.position = data.source.length();
                 return true;
             }
             else if (second == '*') // Multi line comment
             {
                 // Skip characters until */ reached.
                 bool star = false; // True if previous character was a "*"
-                for (int i = data.position + 2; i < (int)data.source.length(); i++)
+                int i;
+                for (i = data.position + 2; i < (int)data.source.length(); i++)
                 {
                     if (star && data.source[i] == '/') // Previous was * and this character is /
                     {
-                        data.position = i + 1; // Update position to be after the comment
                         break;
                     }
                     if (data.source[i] == '\n')
@@ -289,7 +288,8 @@ bool handle_comment(lexer_data &data)
                     }
                     star = data.source[i] == '*';
                 }
-                if (data.position >= (int)data.source.length())
+                data.position = i + 1;
+                if (i >= (int)data.source.length())
                 {
                     write_error_message(data, "Unclosed /* comment");
                 }

@@ -35,11 +35,11 @@ std::string declaration_statement::to_string() const
 {
     if (value)
     {
-        return "DECLARE " + identifier + " = " + value->to_string() + "\n";
+        return "DECLARE " + identifier.get_string()->get_value() + " = " + value->to_string() + "\n";
     }
     else
     {
-        return "DECLARE " + identifier + "\n";
+        return "DECLARE " + identifier.get_string()->get_value() + "\n";
     }
 }
 
@@ -309,21 +309,21 @@ reference sequence_statement::evaluate(execution_context &execution) const
 reference declaration_statement::evaluate(execution_context &execution) const
 {
     stack_frame &frame = execution.peek();
-    if (frame.local_variables.contains(this->identifier))
+    if (frame.local_variables->contains(this->identifier))
     { // Already defined in this scope
-        throw lentus_runtime_exception("Variable " + this->identifier + " already defined in this scope", this);
+        throw lentus_runtime_exception("Variable " + *this->get_identifier() + " already defined in this scope", this);
     }
     else
     {
         if (value == nullptr)
         {
-            frame.local_variables[this->identifier] = variable();
+            frame.local_variables->operator[](this->identifier) = variable();
             return variable();
         }
         else
         {
             variable &result = *value->evaluate(execution);
-            frame.local_variables[this->identifier] = result;
+            frame.local_variables->operator[](this->identifier) = result;
             return result;
         }
     }

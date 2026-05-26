@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 enum class variable_type : int
 {
@@ -13,24 +14,13 @@ enum class variable_type : int
     STRING,
     LIST,
     TABLE,
-    FUNCTION
+    FUNCTION,
 };
 
 class expression;
-
-class function
-{
-private:
-    expression *body;
-    std::vector<std::string> parameters;
-
-public:
-    function(expression *body, std::vector<std::string> &&parameters) : body(body), parameters(parameters) {}
-
-    function(const function &fn) : body(fn.body), parameters(fn.parameters) {}
-};
-
 class variable;
+class statement;
+class function;
 
 struct variable_hasher
 {
@@ -100,9 +90,9 @@ private:
     std::unordered_map<variable, variable, variable_hasher, variable_equal> entries;
 
 public:
-    lentus_table() : entries(0, variable_hasher(), variable_equal()) { }
-    lentus_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) : entries(entries) { }
-    lentus_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) : entries(std::move(entries)) { }
+    lentus_table() : entries(0, variable_hasher(), variable_equal()) {}
+    lentus_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) : entries(entries) {}
+    lentus_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) : entries(std::move(entries)) {}
 
     variable &operator[](const variable &key) { return entries[key]; }
     const variable &operator[](const variable &key) const { return entries.at(key); }

@@ -1,7 +1,7 @@
 var a = 0;
 var b = 1;
 
-for(var x = a + b; true; x = a + b) {
+for(var x = a + b; a < 10000; x = a + b) {
     print(a);
     b = a;
     a = x;

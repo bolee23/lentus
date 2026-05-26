@@ -2,6 +2,8 @@
 #include "magic_enum.hpp"
 #include <cmath>
 #include <format>
+#include <iostream>
+#include "function.hpp"
 
 std::size_t variable_hasher::operator()(const variable &var) const
 {
@@ -625,14 +627,7 @@ std::string variable::to_string() const
             return "false";
         }
     case variable_type::NUMBER:
-        if (std::floor(number) == number)
-        {
-            return std::format("{:.0f}", number);
-        }
-        else
-        {
-            return std::to_string(number);
-        }
+        return std::format("{:g}", number);
     case variable_type::STRING:
         return string->get_value();
     case variable_type::LIST:
@@ -644,7 +639,7 @@ std::string variable::to_string() const
         return "<table @" + std::to_string((size_t)this->table) + ">";
     }
     case variable_type::FUNCTION:
-        return "<function @" + std::to_string((size_t)this->fn) + ">";
+        return this->fn->to_string();
     default:
         return "<error>";
     }
