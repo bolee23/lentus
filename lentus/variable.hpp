@@ -44,6 +44,9 @@ struct variable_equal
 
 class variable_block
 {
+public:
+    virtual std::string to_string() const = 0;
+    virtual ~variable_block() = default;
 };
 
 class lentus_list : public variable_block
@@ -87,6 +90,8 @@ public:
         elements = std::move(new_elements);
         return *this;
     }
+
+    std::string to_string() const override { return "<list @" + std::to_string((size_t)this) + ">"; }
 };
 
 class lentus_table : public variable_block
@@ -95,9 +100,9 @@ private:
     std::unordered_map<variable, variable, variable_hasher, variable_equal> entries;
 
 public:
-    lentus_table() : entries(0, variable_hasher(), variable_equal()) {}
-    lentus_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) : entries(entries) {}
-    lentus_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) : entries(std::move(entries)) {}
+    lentus_table() : entries(0, variable_hasher(), variable_equal()) { }
+    lentus_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) : entries(entries) { }
+    lentus_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) : entries(std::move(entries)) { }
 
     variable &operator[](const variable &key) { return entries[key]; }
     const variable &operator[](const variable &key) const { return entries.at(key); }
@@ -127,6 +132,8 @@ public:
         entries = std::move(new_entries);
         return *this;
     }
+
+    std::string to_string() const override { return "<table @" + std::to_string((size_t)this) + ">"; }
 };
 
 class lentus_string : public variable_block
@@ -150,6 +157,8 @@ public:
 
     void operator=(const std::string &new_value) { value = new_value; }
     void operator=(std::string &&new_value) { value = std::move(new_value); }
+
+    std::string to_string() const override { return value; }
 };
 
 /**

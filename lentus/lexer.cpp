@@ -54,9 +54,6 @@ const std::unordered_map<std::string, token_type> keywords = {
 void handle_number(lexer_data &data)
 {
     char c = data.source[data.position];
-    if (c >= '0' && c <= '9')
-    {
-        }
 
     // i will eventually contain the index of the last character + 1
     int i;
@@ -99,6 +96,10 @@ void handle_number(lexer_data &data)
     catch (const std::invalid_argument &e)
     {
         write_error_message(data, "Invalid number constant '" + substring + "'");
+    }
+    catch (const std::out_of_range &e)
+    {
+        write_error_message(data, "Number constant out of range");
     }
 }
 

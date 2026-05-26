@@ -14,19 +14,25 @@ int main(int argc, char **argv)
         const std::filesystem::path source_path(argv[1]);
 
         bool debug_mode = false;
-        if(argc >= 3)
+        if (argc >= 3)
         {
-            if(std::string(argv[2]) == "--debug")
+            if (std::string(argv[2]) == "--debug")
             {
                 debug_mode = true;
             }
         }
 
-        program prgm;
-        std::optional<program_module *> opt = prgm.load_module(source_path, std::cout, debug_mode);
+        program *prgm = new program();
+        std::optional<program_module *> opt = prgm->load_module(source_path, std::cout, debug_mode);
 
         if (opt)
         {
+            std::string s;
+            std::cout << "a";
+            std::cin >> s;
+            delete prgm;
+            std::cout << "b";
+            std::cin >> s;
             return 0;
         }
         else

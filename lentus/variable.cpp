@@ -1,6 +1,7 @@
 #include "variable.hpp"
 #include "magic_enum.hpp"
 #include <cmath>
+#include <format>
 
 std::size_t variable_hasher::operator()(const variable &var) const
 {
@@ -43,13 +44,13 @@ variable::variable(variable_type type) : type(type)
         number = 0;
         break;
     case variable_type::STRING:
-        string = new lentus_string();
+        string = nullptr;
         break;
     case variable_type::LIST:
-        list = new lentus_list();
+        list = nullptr;
         break;
     case variable_type::TABLE:
-        table = new lentus_table();
+        table = nullptr;
         break;
     case variable_type::FUNCTION:
         fn = nullptr;
@@ -123,7 +124,6 @@ variable &variable::operator=(const variable &var)
     if (this == &var)
         return *this;
 
-    this->~variable();
     type = var.type;
     switch (type)
     {
@@ -156,7 +156,6 @@ variable &variable::operator=(variable &&var)
     if (this == &var)
         return *this;
 
-    this->~variable();
     type = var.type;
     switch (type)
     {
@@ -628,7 +627,7 @@ std::string variable::to_string() const
     case variable_type::NUMBER:
         if (std::floor(number) == number)
         {
-            return std::to_string((long)number);
+            return std::format("{:.0f}", number);
         }
         else
         {

@@ -28,6 +28,12 @@ variable program::create_string(lentus_string *ptr)
     return variable(ptr);
 }
 
+variable program::create_string_literal(lentus_string *ptr)
+{
+    literal_blocks.push_back(ptr);
+    return variable(ptr);
+}
+
 variable program::create_list(lentus_list *ptr)
 {
     variable_blocks.push_back(ptr);
@@ -69,7 +75,7 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     }
 
     // Create module
-    std::optional<program_module *> opt = create_module(path, error_stream, this->create_empty_table(), lp_debug);
+    std::optional<program_module *> opt = create_module(this->literal_blocks, path, error_stream, this->create_empty_table(), lp_debug);
     if (!opt)
     {
         return std::nullopt;
@@ -78,7 +84,7 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     program_module *created_module = opt.value();
     modules[path] = created_module;
 
-    if(lp_debug)
+    if (lp_debug)
     {
         std::cout << "Result:" << std::endl;
     }
@@ -109,11 +115,10 @@ program &program::operator=(program &&prog)
     {
         this->modules = std::move(prog.modules);
         this->variable_blocks = std::move(prog.variable_blocks);
-        this->anon_module = prog.anon_module;
+        this->anon_module = std::move(prog.anon_module);
     }
     return *this;
 }
-
 program::~program()
 {
     for (auto entry : modules)
@@ -123,6 +128,11 @@ program::~program()
     }
 
     for (variable_block *var : variable_blocks)
+    {
+        delete var;
+    }
+
+    for (variable_block *var : literal_blocks)
     {
         delete var;
     }

@@ -7,7 +7,7 @@
 struct stack_frame
 {
     program_module *current_module;
-    lentus_table *local_variables;
+    std::unordered_map<std::string, variable> local_variables;
 };
 
 class execution_context
@@ -31,13 +31,13 @@ public:
      * @param current_module the module to push
      * @return the new stack frame
      */
-    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module, new lentus_table()); }
+    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module); }
 
     /**
      * Push a new stack frame
      * @return the new stack frame
      */
-    stack_frame &push() { return stack.emplace_back(peek().current_module, new lentus_table()); }
+    stack_frame &push() { return stack.emplace_back(peek().current_module); }
 
     /**
      * Get the current stack frame

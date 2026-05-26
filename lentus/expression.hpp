@@ -112,7 +112,7 @@ public:
         this->start_position = start_position;
         this->end_position = end_position;
     }
-    literal_expression(const std::string &value, int line_number, int start_position, int end_position);
+    literal_expression(lentus_string *string, int line_number, int start_position, int end_position);
     literal_expression(const literal_expression &other) = delete;
     literal_expression &operator=(const literal_expression &other) = delete;
 

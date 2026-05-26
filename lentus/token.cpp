@@ -49,7 +49,20 @@ token &token::operator=(const token &tok)
     if (this == &tok)
         return *this;
 
-    this->~token();
+    switch (type)
+    {
+    case token_type::IDENTIFIER:
+        delete identifier_name;
+        break;
+    case token_type::STRING:
+        delete string_constant;
+        break;
+    case token_type::NUMBER:
+        break;
+    default:
+        break;
+    }
+
     type = tok.type;
     line_number = tok.line_number;
     start_position = tok.start_position;
@@ -76,7 +89,20 @@ token &token::operator=(token &&tok)
     if (this == &tok)
         return *this;
 
-    this->~token();
+    switch (type)
+    {
+    case token_type::IDENTIFIER:
+        delete identifier_name;
+        break;
+    case token_type::STRING:
+        delete string_constant;
+        break;
+    case token_type::NUMBER:
+        break;
+    default:
+        break;
+    }
+
     type = tok.type;
     line_number = tok.line_number;
     start_position = tok.start_position;

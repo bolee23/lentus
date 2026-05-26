@@ -93,9 +93,9 @@ grouping_expression::~grouping_expression()
     delete inner_expression;
 }
 
-literal_expression::literal_expression(const std::string &value, int line_number, int start_position, int end_position)
+literal_expression::literal_expression(lentus_string* string, int line_number, int start_position, int end_position)
 {
-    this->value = variable(new lentus_string(value));
+    this->value = variable(string);
     this->line_number = line_number;
     this->start_position = start_position;
     this->end_position = end_position;
@@ -118,23 +118,7 @@ literal_expression &literal_expression::operator=(literal_expression &&other)
 
 literal_expression::~literal_expression()
 {
-    switch (value.get_type())
-    {
-    case variable_type::STRING:
-        delete value.get_string();
-        break;
-    case variable_type::LIST:
-        delete value.get_list();
-        break;
-    case variable_type::TABLE:
-        delete value.get_table();
-        break;
-    case variable_type::FUNCTION:
-        delete value.get_function();
-        break;
-    default:
-        break;
-    }
+
 }
 
 std::string literal_expression::to_string() const
@@ -221,7 +205,7 @@ std::string call_expression::to_string() const
 
 reference error_expression::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    throw new lentus_runtime_exception("Tried to evaluate error_node");
+    throw lentus_runtime_exception("Tried to evaluate error_node");
 }
 
 reference literal_expression::evaluate([[maybe_unused]] execution_context &execution) const
@@ -284,8 +268,8 @@ reference binary_expression::evaluate(execution_context &execution) const
             lentus_string *left_string = lhs->get_string();
             lentus_string *right_string = rhs->get_string();
             lentus_string *new_string = new lentus_string(std::string((*left_string)->size() + (*right_string)->size(), '\0'));
-            (*new_string)->append(**left_string);
-            (*new_string)->append(**right_string);
+            (*new_string)->append(left_string->get_value());
+            (*new_string)->append(right_string->get_value());
             return reference(execution.get_program().create_string(new_string));
         }
         else

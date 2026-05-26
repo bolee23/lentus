@@ -5,7 +5,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 
-std::optional<program_module *> create_module(const std::filesystem::path &path, std::ostream &error_stream, lentus_table *global_table, bool lp_debug)
+std::optional<program_module *> create_module(std::vector<variable_block *> &literal_variables, const std::filesystem::path &path, std::ostream &error_stream, lentus_table *global_table, bool lp_debug)
 {
     // Read file
     std::ifstream input_stream(path);
@@ -25,7 +25,7 @@ std::optional<program_module *> create_module(const std::filesystem::path &path,
         write_tokens(token_result.value(), std::cout);
     }
 
-    parse_result<statement> result_parsing = parse(token_result.value(), file_contents, error_stream);
+    parse_result<statement> result_parsing = parse(literal_variables, token_result.value(), file_contents, error_stream);
 
     if (lp_debug)
     {

@@ -178,6 +178,7 @@ parse_result<expression> parse_primary(parser_data &data)
     {
         data.position++;
         lentus_string *string_constant = new lentus_string(*current.get_string_constant());
+        data.literal_blocks.push_back(string_constant);
         return {new literal_expression(variable(string_constant), line_number, start_position, end_position), false};
     }
     case token_type::LEFT_BRACKET:
@@ -237,6 +238,10 @@ parse_result<expression> parse_call(parser_data &data)
             if (!match_and_consume(data, token_type::RIGHT_BRACKET))
             {
                 write_expectation_error_message(data, "')' after function call");
+                for (expression *expr : arguments)
+                {
+                    delete expr;
+                }
                 data.position++;
                 return {new error_expression(), true};
             }
@@ -575,7 +580,7 @@ parse_result<statement> parse_statement(parser_data &data, bool allow_declaratio
 
     switch (data.tokens[data.position].get_type())
     {
-    case token_type::END_STATEMENT: 
+    case token_type::END_STATEMENT:
         // ';' extra semicolon counts as an empty statement
         // This may be needed ie to skip the initializer statement in a for loop.
         data.position++;
@@ -629,7 +634,7 @@ parse_result<statement> parse_module(parser_data &data)
     return parse_sequence(data);
 }
 
-parse_result<statement> parse(const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream)
+parse_result<statement> parse(std::vector<variable_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream)
 {
     // Special case : empty input, single empty sequence statement is returned, and no error is reported
     if (tokens.empty())
@@ -638,7 +643,7 @@ parse_result<statement> parse(const std::vector<token> &tokens, const std::strin
     }
 
     std::vector<source_line> lines = split_lines(source_string);
-    parser_data data{tokens, source_string, lines, error_stream, 0};
+    parser_data data{tokens, source_string, lines, literal_variables, error_stream, 0};
 
     parse_result<statement> result = parse_module(data);
 

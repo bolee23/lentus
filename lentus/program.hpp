@@ -43,6 +43,13 @@ public:
     variable create_string(std::string &&str) { return create_string(new lentus_string(std::move(str))); }
 
     /**
+     * Like create_string, but adds to the literal_blocks array instead.
+     */
+    variable create_string_literal(lentus_string *ptr);
+    variable create_string_literal(const std::string &str) { return create_string_literal(new lentus_string(str)); }
+    variable create_string_literal(std::string &&str) { return create_string_literal(new lentus_string(std::move(str))); }
+
+    /**
      * Creates a variable that holds a pointer to the given lentus_list and tracks the lentus_list for deallocation.
      */
     variable create_list(lentus_list *ptr);

@@ -308,27 +308,22 @@ reference sequence_statement::evaluate(execution_context &execution) const
 
 reference declaration_statement::evaluate(execution_context &execution) const
 {
-    lentus_string lentus_identifier(this->identifier);
-
     stack_frame &frame = execution.peek();
-    if (frame.local_variables->contains(variable(&lentus_identifier)))
+    if (frame.local_variables.contains(this->identifier))
     { // Already defined in this scope
-        throw lentus_runtime_exception("Variable " + *lentus_identifier + " already defined in this scope", this);
+        throw lentus_runtime_exception("Variable " + this->identifier + " already defined in this scope", this);
     }
     else
     {
-        // Dynamically allocate new variable and track it.
-        variable key = execution.get_program().create_string(new lentus_string(std::move(lentus_identifier)));
-
         if (value == nullptr)
         {
-            frame.local_variables->operator[](key) = variable();
+            frame.local_variables[this->identifier] = variable();
             return variable();
         }
         else
         {
             variable &result = *value->evaluate(execution);
-            frame.local_variables->operator[](key) = result;
+            frame.local_variables[this->identifier] = result;
             return result;
         }
     }
@@ -356,7 +351,7 @@ reference if_statement::evaluate(execution_context &execution) const
     }
 }
 
-reference for_statement::evaluate([[maybe_unused]] execution_context &execution) const
+reference for_statement::evaluate(execution_context &execution) const
 {
     execution.push();
     if (var_initializer)

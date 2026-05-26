@@ -42,8 +42,6 @@ std::optional<reference> execution_context::get_variable(const std::string &iden
     {
         return std::nullopt;
     }
-    lentus_string string = lentus_string(std::move(identifier));
-    variable var_string(&string);
 
     program_module *current_module = get_current_module();
     for (int i = stack.size() - 1; i >= 0; i--)
@@ -54,18 +52,19 @@ std::optional<reference> execution_context::get_variable(const std::string &iden
         {
             break;
         }
-        if (frame.local_variables->contains(var_string))
+        if (frame.local_variables.contains(identifier))
         {
-            return std::optional<reference>(reference(&frame.local_variables->at(var_string)));
+            return std::optional<reference>(reference(&frame.local_variables[identifier]));
         }
     }
 
     // One last search in the current module's global table
     lentus_table *table_ptr = current_module->get_global_table();
+    lentus_string str = identifier;
 
-    if (table_ptr->contains(var_string))
+    if (table_ptr->contains(&str))
     {
-        return std::optional<reference>(reference(&table_ptr->at(var_string)));
+        return std::optional<reference>(reference(&table_ptr->at(&str)));
     }
     else
     {
