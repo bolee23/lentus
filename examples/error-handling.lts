@@ -1,0 +1,3 @@
+
+// Cannot compare different types;
+var error = 2 == true;

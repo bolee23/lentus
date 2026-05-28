@@ -154,4 +154,13 @@ public:
     const char *what() const noexcept { return "Return statement"; }
 };
 
+/** Represents a line of source code (for error reporting) */
+struct source_line
+{
+    std::string text;
+    int start_position;
+};
+
+std::vector<source_line> split_lines(const std::string &source_string);
+
 #endif

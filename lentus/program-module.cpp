@@ -25,7 +25,8 @@ std::optional<program_module *> create_module(std::vector<variable_block *> &lit
         write_tokens(token_result.value(), std::cout);
     }
 
-    parse_result<statement> result_parsing = parse(literal_variables, token_result.value(), file_contents, error_stream);
+    std::vector<source_line> lines = split_lines(file_contents);
+    parse_result<statement> result_parsing = parse(literal_variables, token_result.value(), file_contents, lines, error_stream);
 
     if (lp_debug)
     {
@@ -40,7 +41,7 @@ std::optional<program_module *> create_module(std::vector<variable_block *> &lit
         return std::nullopt;
     }
 
-    return new program_module(path, result_parsing.ast, global_table);
+    return new program_module(path, result_parsing.ast, global_table, std::move(file_contents), std::move(lines));
 }
 
 program_module::program_module(program_module &&prgm_module) : path(prgm_module.path), root_statement(prgm_module.root_statement), global_table(prgm_module.global_table)

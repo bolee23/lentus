@@ -7,6 +7,7 @@
 #include <filesystem>
 #include "variable.hpp"
 #include "statement.hpp"
+class source_line;
 
 class program_module
 {
@@ -15,8 +16,11 @@ private:
     statement *root_statement;
     lentus_table *global_table; /** Global table contains only the module's variables/functions that are marked with 'export' */
 
+    std::string source_code;               /** The source code of the module, used for error reporting */
+    std::vector<source_line> source_lines; /** The source code split into lines, used for error reporting */
+
 public:
-    program_module(const std::filesystem::path &path, statement *root_statement, lentus_table *global_table) : path(path), root_statement(root_statement), global_table(global_table) {}
+    program_module(const std::filesystem::path &path, statement *root_statement, lentus_table *global_table, std::string &&source_code = "", std::vector<source_line> &&source_lines = {}) : path(path), root_statement(root_statement), global_table(global_table), source_code(source_code), source_lines(source_lines) {}
 
     lentus_table *get_global_table() const { return global_table; }
 
@@ -28,6 +32,9 @@ public:
 
     program_module &operator=(const program_module &prgm_module) = delete;
     program_module &operator=(program_module &&prgm_module);
+
+    std::string get_source_code() const { return source_code; }
+    const std::vector<source_line> &get_source_lines() const { return source_lines; }
 
     ~program_module();
 };

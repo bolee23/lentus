@@ -23,7 +23,7 @@ var guess_number = 1;
 
 while true {
     var guess = perform_guess(guess_number); 
-    if(guess == none) continue;   
+    if guess == none continue;   
 
     if(guess > number) {
         print_line("Number is lower");
@@ -38,6 +38,7 @@ while true {
         print_line("The number was: ", number);
         break;
     }
+
     guess_number += 1;
 }
 

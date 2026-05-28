@@ -6,11 +6,11 @@
 static std::random_device rd;
 static std::mt19937 gen(rd());
 
-void validate_num_arguments(function &func, std::vector<variable> &parameters, size_t expected)
+void validate_num_arguments(function &func, std::vector<variable> &parameters, size_t expected, const ast_node *executor)
 {
     if (parameters.size() != expected)
     {
-        throw lentus_runtime_exception("Invalid number of arguments for function " + func.to_string() + ", expected " + std::to_string(expected));
+        throw lentus_runtime_exception("Invalid number of arguments for function " + func.to_string() + ", expected " + std::to_string(expected), executor);
     }
 }
 
@@ -35,7 +35,7 @@ variable print_line_function::evaluate([[maybe_unused]] execution_context &execu
 
 variable number_cast_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
-    validate_num_arguments(*this, parameters, 1);
+    validate_num_arguments(*this, parameters, 1, executor);
 
     if (parameters[0].is(variable_type::NUMBER))
     {
@@ -75,7 +75,7 @@ variable number_cast_function::evaluate([[maybe_unused]] execution_context &exec
 
 variable is_number_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
 {
-    validate_num_arguments(*this, parameters, 1);
+    validate_num_arguments(*this, parameters, 1, executor);
 
     switch (parameters[0].get_type())
     {
@@ -110,7 +110,7 @@ variable is_number_function::evaluate(execution_context &execution, std::vector<
 
 variable is_integer_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
 {
-    validate_num_arguments(*this, parameters, 1);
+    validate_num_arguments(*this, parameters, 1, executor);
 
     switch (parameters[0].get_type())
     {
@@ -145,7 +145,7 @@ variable is_integer_function::evaluate(execution_context &execution, std::vector
 
 variable string_cast_function::evaluate(execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
-    validate_num_arguments(*this, parameters, 1);
+    validate_num_arguments(*this, parameters, 1, executor);
     return execution.get_program().create_string(parameters[0].to_string());
 }
 
@@ -207,7 +207,7 @@ variable input_function::evaluate(execution_context &execution, std::vector<vari
 
 variable rand_int_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
 {
-    validate_num_arguments(*this, parameters, 2);
+    validate_num_arguments(*this, parameters, 2, executor);
 
     if (!parameters[0].is(variable_type::NUMBER) || !parameters[1].is(variable_type::NUMBER))
     {

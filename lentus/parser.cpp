@@ -339,34 +339,6 @@ parse_result<expression> parse_expression(parser_data &data)
     return parse_compound_assignment(data);
 }
 
-std::vector<source_line> split_lines(const std::string &source_string)
-{
-    std::vector<source_line> lines;
-    std::string current_line;
-    int pos = 0;
-    int line_start = 0;
-    for (int i = 0; i < (int)source_string.length(); i++)
-    {
-        char c = source_string[i];
-        if (c == '\n')
-        {
-            lines.push_back({std::move(current_line), line_start});
-            current_line.clear();
-            pos = i + 1;
-            line_start = pos;
-        }
-        else
-        {
-            current_line += c;
-        }
-    }
-    if (!current_line.empty())
-    {
-        lines.push_back({std::move(current_line), line_start});
-    }
-    return lines;
-}
-
 parse_result<statement> parse_declaration(parser_data &data)
 {
     if (match_and_consume(data, token_type::IDENTIFIER))
@@ -766,7 +738,7 @@ parse_result<statement> parse_module(parser_data &data)
     return parse_sequence(data);
 }
 
-parse_result<statement> parse(std::vector<variable_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, std::ostream &error_stream)
+parse_result<statement> parse(std::vector<variable_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, const std::vector<source_line> &lines, std::ostream &error_stream)
 {
     // Special case : empty input, single empty sequence statement is returned, and no error is reported
     if (tokens.empty())
@@ -774,7 +746,6 @@ parse_result<statement> parse(std::vector<variable_block *> &literal_variables, 
         return {new sequence_statement(), false};
     }
 
-    std::vector<source_line> lines = split_lines(source_string);
     parser_data data{tokens, source_string, lines, literal_variables, error_stream, 0};
 
     parse_result<statement> result = parse_module(data);

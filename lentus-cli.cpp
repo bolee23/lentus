@@ -31,7 +31,6 @@ int main(int argc, char **argv)
         }
         else
         {
-            std::cout << "Failed to execute";
             return 1;
         }
     }

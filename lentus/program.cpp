@@ -114,6 +114,35 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
     return std::make_optional(created_module);
 }
 
+std::vector<source_line> split_lines(const std::string &source_string)
+{
+    std::vector<source_line> lines;
+    std::string current_line;
+    int pos = 0;
+    int line_start = 0;
+    for (int i = 0; i < (int)source_string.length(); i++)
+    {
+        char c = source_string[i];
+        if (c == '\n')
+        {
+            lines.push_back({std::move(current_line), line_start});
+            current_line.clear();
+            pos = i + 1;
+            line_start = pos;
+        }
+        else
+        {
+            current_line += c;
+        }
+    }
+    if (!current_line.empty())
+    {
+        lines.push_back({std::move(current_line), line_start});
+    }
+    return lines;
+}
+
+
 program::program() : anon_module(create_empty_table())
 {
     register_native_function("print", new print_function());

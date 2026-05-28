@@ -16,7 +16,38 @@ std::optional<reference> execution_context::execute_module(program_module *mdl)
     }
     catch (lentus_runtime_exception &exception)
     {
-        std::cout << "Unhandled runtime error while executing " + mdl->get_path().filename().string() << ":" << std::endl;
+        if (exception.get_node())
+        {
+            std::cout << "Runtime error while executing " + mdl->get_path().filename().string() + " at line " + std::to_string(exception.get_node()->get_line_number()) << ": " << std::endl;
+            if (!mdl->get_source_lines().empty() && !mdl->get_source_code().empty())
+            {
+                int line_index = exception.get_node()->get_line_number() - 1;
+                if (line_index >= (int)mdl->get_source_lines().size())
+                {
+                    line_index = mdl->get_source_lines().size() - 1;
+                }
+
+                std::cout << mdl->get_source_lines()[line_index].text << std::endl;
+
+                // Position the arrows
+                for (int i = 0; i < exception.get_node()->get_start_position() - mdl->get_source_lines()[line_index].start_position; i++)
+                {
+                    std::cout << ' ';
+                }
+
+                // One arrow for each character in the token
+                for (int i = exception.get_node()->get_start_position(); i < exception.get_node()->get_end_position(); i++)
+                {
+                    std::cout << '^';
+                }
+
+                std::cout << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "Runtime error while executing " + mdl->get_path().filename().string() + ": " << std::endl;
+        }
         std::cout << exception.what() << std::endl;
 
         this->stack_synchronize(size);
