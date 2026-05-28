@@ -234,4 +234,75 @@ public:
 
     ~empty_statement() override = default;
 };
+
+class return_statement : public statement
+{
+private:
+    expression *value; /** nullptr if no return value */
+
+public:
+    return_statement(expression *value, int line_number, int start_position, int end_position) : value(value)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    return_statement(const return_statement &other) = delete;
+    return_statement &operator=(const return_statement &other) = delete;
+
+    return_statement(return_statement &&other);
+    return_statement &operator=(return_statement &&other);
+
+    expression *get_value() const { return value; }
+
+    reference evaluate(execution_context &execution) const override;
+    virtual std::string to_string() const override;
+
+    ~return_statement() override;
+};
+
+class break_statement : public statement
+{
+public:
+    break_statement(int line_number, int start_position, int end_position)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    break_statement(const break_statement &other) = delete;
+    break_statement &operator=(const break_statement &other) = delete;
+
+    break_statement(break_statement &&other) = default;
+    break_statement &operator=(break_statement &&other) = default;
+
+    reference evaluate(execution_context &execution) const override;
+    virtual std::string to_string() const override;
+
+    ~break_statement() override = default;
+};
+
+class continue_statement : public statement
+{
+public:
+    continue_statement(int line_number, int start_position, int end_position)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    continue_statement(const continue_statement &other) = delete;
+    continue_statement &operator=(const continue_statement &other) = delete;
+
+    continue_statement(continue_statement &&other) = default;
+    continue_statement &operator=(continue_statement &&other) = default;
+
+    reference evaluate(execution_context &execution) const override;
+    virtual std::string to_string() const override;
+
+    ~continue_statement() override = default;
+};
 #endif

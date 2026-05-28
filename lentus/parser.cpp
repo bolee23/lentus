@@ -634,6 +634,56 @@ parse_result<statement> parse_function_declaration(parser_data &data)
     return {declaration, error};
 }
 
+parse_result<statement> parse_return_statement(parser_data &data)
+{
+    if (match_and_consume(data, token_type::END_STATEMENT))
+    {
+        const token &tok = data.tokens[data.position - 2];
+        // return without value
+        return {new return_statement(nullptr, tok.get_line_number(), tok.get_start_position(), tok.get_end_position()), true};
+    }
+    else
+    {
+        const token &tok = data.tokens[data.position - 1];
+
+        // return with value, consume and expect an expression
+        parse_result<expression> return_expr = parse_expression(data);
+        bool error = return_expr.error;
+        int end = return_expr.ast->get_end_position();
+
+        if (!match_and_consume(data, token_type::END_STATEMENT))
+        {
+            write_expectation_error_message(data, "';' here");
+            delete return_expr.ast;
+            return {new error_statement(), true};
+        }
+
+        return {new return_statement(return_expr.ast, tok.get_line_number(), tok.get_start_position(), end), error};
+    }
+}
+
+parse_result<statement> parse_break_statement(parser_data &data)
+{
+    const token &tok = data.tokens[data.position - 1];
+    if (!match_and_consume(data, token_type::END_STATEMENT))
+    {
+        write_expectation_error_message(data, "';' here");
+        return {new error_statement(), true};
+    }
+    return {new break_statement(tok.get_line_number(), tok.get_start_position(), data.tokens[data.position - 1].get_end_position()), false};
+}
+
+parse_result<statement> parse_continue_statement(parser_data &data)
+{
+    const token &tok = data.tokens[data.position - 1];
+    if (!match_and_consume(data, token_type::END_STATEMENT))
+    {
+        write_expectation_error_message(data, "';' here");
+        return {new error_statement(), true};
+    }
+    return {new continue_statement(tok.get_line_number(), tok.get_start_position(), data.tokens[data.position - 1].get_end_position()), false};
+}
+
 parse_result<statement> parse_statement(parser_data &data, bool allow_declarations)
 {
     if (data.position >= (int)data.tokens.size())
@@ -644,6 +694,15 @@ parse_result<statement> parse_statement(parser_data &data, bool allow_declaratio
 
     switch (data.tokens[data.position].get_type())
     {
+    case token_type::RETURN:
+        data.position++;
+        return parse_return_statement(data);
+    case token_type::BREAK:
+        data.position++;
+        return parse_break_statement(data);
+    case token_type::CONTINUE:
+        data.position++;
+        return parse_continue_statement(data);
     case token_type::FUNCTION:
         if (!allow_declarations)
         {

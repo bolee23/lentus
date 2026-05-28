@@ -281,6 +281,56 @@ std::string sequence_statement::to_string() const
     return result;
 }
 
+return_statement::return_statement(return_statement &&other)
+{
+    value = other.value;
+    other.value = nullptr;
+    line_number = other.line_number;
+    start_position = other.start_position;
+    end_position = other.end_position;
+}
+
+return_statement &return_statement::operator=(return_statement &&other)
+{
+    if (this != &other)
+    {
+        delete value;
+        value = other.value;
+        other.value = nullptr;
+        line_number = other.line_number;
+        start_position = other.start_position;
+        end_position = other.end_position;
+    }
+    return *this;
+}
+
+return_statement::~return_statement()
+{
+    delete value;
+}
+
+std::string return_statement::to_string() const
+{
+    if (value)
+    {
+        return "RETURN " + value->to_string() + "\n";
+    }
+    else
+    {
+        return "RETURN\n";
+    }
+}
+
+std::string break_statement::to_string() const
+{
+    return "BREAK\n";
+}
+
+std::string continue_statement::to_string() const
+{
+    return "CONTINUE\n";
+}
+
 reference error_statement::evaluate([[maybe_unused]] execution_context &execution) const
 {
     throw lentus_runtime_exception("Cannot evaluate error_node", this);
@@ -308,8 +358,7 @@ reference sequence_statement::evaluate(execution_context &execution) const
 
 reference declaration_statement::evaluate(execution_context &execution) const
 {
-    stack_frame &frame = execution.peek();
-    if (frame.local_variables->contains(this->identifier))
+    if (execution.peek().local_variables->contains(this->identifier))
     { // Already defined in this scope
         throw lentus_runtime_exception("Variable " + *this->get_identifier() + " already defined in this scope", this);
     }
@@ -317,14 +366,14 @@ reference declaration_statement::evaluate(execution_context &execution) const
     {
         if (value == nullptr)
         {
-            frame.local_variables->operator[](this->identifier) = variable();
+            execution.peek().local_variables->add(this->identifier, variable());
             return variable();
         }
         else
         {
             reference ref = value->evaluate(execution);
-            variable &result = *ref;
-            frame.local_variables->operator[](this->identifier) = result;
+            variable result = *ref;
+            execution.peek().local_variables->add(this->identifier, result);
             return result;
         }
     }
@@ -362,28 +411,48 @@ reference for_statement::evaluate(execution_context &execution) const
 
     variable last_value = variable();
 
-    while (true)
+    int break_marker = execution.stack_position();
+    try // break
     {
-        // Check condition
-        variable condition_result = *condition->evaluate(execution);
-        if (!condition_result.is(variable_type::BOOLEAN))
+        while (true)
         {
-            throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
-        }
-        if (!condition_result.get_boolean())
-        {
-            break;
+            // Check condition
+            variable condition_result = *condition->evaluate(execution);
+            if (!condition_result.is(variable_type::BOOLEAN))
+            {
+                throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+            }
+            if (!condition_result.get_boolean())
+            {
+                break;
+            }
+
+            int continue_marker = execution.stack_position();
+            try // continue
+            {
+                last_value = *body->evaluate(execution);
+            }
+            catch (const continue_signal &)
+            {
+                execution.stack_synchronize(continue_marker);
+            }
+
+            // post iteration regardless of continue or not
+            if (post_iteration)
+            {
+                post_iteration->evaluate(execution);
+            }
         }
 
-        last_value = *body->evaluate(execution);
-        if (post_iteration)
-        {
-            post_iteration->evaluate(execution);
-        }
+        execution.pop();
+        return last_value;
     }
-
-    execution.pop();
-    return last_value;
+    catch (const break_signal &)
+    {
+        execution.stack_synchronize(break_marker);
+        execution.pop();
+        return variable();
+    }
 }
 
 reference loop_statement::evaluate([[maybe_unused]] execution_context &execution) const
@@ -392,40 +461,90 @@ reference loop_statement::evaluate([[maybe_unused]] execution_context &execution
 
     if (is_do_loop)
     {
-        while (true)
+        int break_marker = execution.stack_position();
+        try // break
         {
-            last_value = *body->evaluate(execution);
+            while (true)
+            {
+                int continue_marker = execution.stack_position();
+                try // continue
+                {
+                    last_value = *body->evaluate(execution);
+                }
+                catch (const continue_signal &)
+                {
+                    execution.stack_synchronize(continue_marker);
+                }
 
-            // Check condition
-            variable condition_result = *condition->evaluate(execution);
-            if (!condition_result.is(variable_type::BOOLEAN))
-            {
-                throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+                // Check condition
+                variable condition_result = *condition->evaluate(execution);
+                if (!condition_result.is(variable_type::BOOLEAN))
+                {
+                    throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+                }
+                if (!condition_result.get_boolean())
+                {
+                    break;
+                }
             }
-            if (!condition_result.get_boolean())
-            {
-                break;
-            }
+            return last_value;
+        }
+        catch (const break_signal &)
+        {
+            execution.stack_synchronize(break_marker);
+            return variable();
         }
     }
     else
     {
-        while (true)
+        int break_marker = execution.stack_position();
+        try // break
         {
-            // Check condition
-            variable condition_result = *condition->evaluate(execution);
-            if (!condition_result.is(variable_type::BOOLEAN))
+            while (true)
             {
-                throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
-            }
-            if (!condition_result.get_boolean())
-            {
-                break;
-            }
+                // Check condition
+                variable condition_result = *condition->evaluate(execution);
+                if (!condition_result.is(variable_type::BOOLEAN))
+                {
+                    throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+                }
+                if (!condition_result.get_boolean())
+                {
+                    break;
+                }
 
-            last_value = *body->evaluate(execution);
+                int continue_marker = execution.stack_position();
+                try // continue
+                {
+                    last_value = *body->evaluate(execution);
+                }
+                catch (const continue_signal &)
+                {
+                    execution.stack_synchronize(continue_marker);
+                }
+            }
+            return last_value;
+        }
+        catch (const break_signal &)
+        {
+            execution.stack_synchronize(break_marker);
+            return variable();
         }
     }
+}
 
-    return last_value;
+reference return_statement::evaluate([[maybe_unused]] execution_context &execution) const
+{
+    variable return_value = value ? *value->evaluate(execution) : variable();
+    throw return_signal(return_value);
+}
+
+reference break_statement::evaluate([[maybe_unused]] execution_context &execution) const
+{
+    throw break_signal();
+}
+
+reference continue_statement::evaluate([[maybe_unused]] execution_context &execution) const
+{
+    throw continue_signal();
 }

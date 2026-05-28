@@ -33,7 +33,7 @@ public:
      * @param current_module the module to push
      * @return the new stack frame
      */
-    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module, stack.empty() ? nullptr : peek().current_function, prgm->create_empty_table()); }
+    stack_frame &push_new_module(program_module *current_module) { return stack.emplace_back(current_module, nullptr, prgm->create_empty_table()); }
 
     /**
      * Push a new stack frame for executing a new non-native function onto the stack
@@ -82,7 +82,7 @@ public:
      * After resizing, the stack should be in the same state as before the try block
      * @param size the stack size before the try block
      */
-    void stack_synchronize(int size) { this->stack.resize(size); }
+    void stack_synchronize(int size);
 
     /**
      * Get the current module that is being executed

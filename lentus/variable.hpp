@@ -20,7 +20,6 @@ enum class variable_type : int
 class expression;
 class variable;
 class statement;
-class function;
 
 struct variable_hasher
 {
@@ -39,117 +38,10 @@ public:
     virtual ~variable_block() = default;
 };
 
-class lentus_list : public variable_block
-{
-private:
-    std::vector<variable> elements;
-
-public:
-    lentus_list() : elements() {}
-    lentus_list(const std::vector<variable> &elements) : elements(elements) {}
-    lentus_list(std::vector<variable> &&elements) : elements(std::move(elements)) {}
-
-    variable &operator[](size_t index) { return elements[index]; }
-    const variable &operator[](size_t index) const { return elements[index]; }
-
-    variable &at(size_t index) { return elements.at(index); }
-    const variable &at(size_t index) const { return elements.at(index); }
-
-    void push_back(const variable &var) { elements.push_back(var); }
-    void push_back(variable &&var) { elements.push_back(std::move(var)); }
-
-    void pop_back() { elements.pop_back(); }
-    void remove(size_t index) { elements.erase(elements.begin() + index); }
-
-    size_t size() const { return elements.size(); }
-    std::vector<variable> &get_elements() { return elements; }
-    const std::vector<variable> &get_elements() const { return elements; }
-
-    std::vector<variable>::iterator begin() { return elements.begin(); }
-    std::vector<variable>::iterator end() { return elements.end(); }
-    std::vector<variable>::const_iterator begin() const { return elements.begin(); }
-    std::vector<variable>::const_iterator end() const { return elements.end(); }
-
-    lentus_list &operator=(const std::vector<variable> &new_elements)
-    {
-        elements = new_elements;
-        return *this;
-    }
-    lentus_list &operator=(std::vector<variable> &&new_elements)
-    {
-        elements = std::move(new_elements);
-        return *this;
-    }
-
-    std::string to_string() const override { return "<list @" + std::to_string((size_t)this) + ">"; }
-};
-
-class lentus_table : public variable_block
-{
-private:
-    std::unordered_map<variable, variable, variable_hasher, variable_equal> entries;
-
-public:
-    lentus_table() : entries(0, variable_hasher(), variable_equal()) {}
-    lentus_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) : entries(entries) {}
-    lentus_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) : entries(std::move(entries)) {}
-
-    variable &operator[](const variable &key) { return entries[key]; }
-    const variable &operator[](const variable &key) const { return entries.at(key); }
-
-    variable &at(const variable &key) { return entries.at(key); }
-    const variable &at(const variable &key) const { return entries.at(key); }
-
-    void remove(const variable &key) { entries.erase(key); }
-    bool contains(const variable &key) const { return entries.contains(key); }
-    size_t size() const { return entries.size(); }
-
-    std::unordered_map<variable, variable, variable_hasher, variable_equal> &get_entries() { return entries; }
-    const std::unordered_map<variable, variable, variable_hasher, variable_equal> &get_entries() const { return entries; }
-
-    std::unordered_map<variable, variable, variable_hasher, variable_equal>::iterator begin() { return entries.begin(); }
-    std::unordered_map<variable, variable, variable_hasher, variable_equal>::iterator end() { return entries.end(); }
-    std::unordered_map<variable, variable, variable_hasher, variable_equal>::const_iterator begin() const { return entries.begin(); }
-    std::unordered_map<variable, variable, variable_hasher, variable_equal>::const_iterator end() const { return entries.end(); }
-
-    lentus_table &operator=(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &new_entries)
-    {
-        entries = new_entries;
-        return *this;
-    }
-    lentus_table &operator=(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&new_entries)
-    {
-        entries = std::move(new_entries);
-        return *this;
-    }
-
-    std::string to_string() const override { return "<table @" + std::to_string((size_t)this) + ">"; }
-};
-
-class lentus_string : public variable_block
-{
-private:
-    std::string value;
-
-public:
-    lentus_string() : value("") {}
-    lentus_string(const std::string &value) : value(value) {}
-    lentus_string(std::string &&value) : value(std::move(value)) {}
-
-    const std::string &get_value() const { return value; }
-    std::string &get_value() { return value; }
-
-    const std::string &operator*() const { return value; }
-    std::string &operator*() { return value; }
-
-    const std::string *operator->() const { return &value; }
-    std::string *operator->() { return &value; }
-
-    void operator=(const std::string &new_value) { value = new_value; }
-    void operator=(std::string &&new_value) { value = std::move(new_value); }
-
-    std::string to_string() const override { return value; }
-};
+class lentus_table;
+class lentus_string;
+class lentus_list;
+class function;
 
 /**
  * Represents a variable in the Lentus language.
@@ -228,6 +120,148 @@ public:
     const function *get_function() const;
 };
 
+class lentus_table : public variable_block
+{
+private:
+    std::unordered_map<variable, variable, variable_hasher, variable_equal> entries;
+
+public:
+    lentus_table() : entries(0, variable_hasher(), variable_equal()) {}
+    lentus_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) : entries(entries) {}
+    lentus_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) : entries(std::move(entries)) {}
+
+    /**
+     * Inserts a key-value pair into the table. If the key already exists, the value is overwritten.
+     */
+    void add(variable key, variable value) { entries.insert_or_assign(key, value); }
+
+    /**
+     * Accesses the value associated with the key. Throws std::out_of_range if the key does not exist in the table.
+     */
+    variable &at(const variable &key) { return entries.at(key); }
+
+    /**
+     * Accesses the value associated with the key. Throws std::out_of_range if the key does not exist in the table.
+     */
+    const variable &at(const variable &key) const { return entries.at(key); }
+
+    /**
+     * Removes the key-value pair associated with the key. Returns true if the key was found and removed, false otherwise.
+     */
+    bool remove(const variable &key) { return entries.erase(key) > 0; }
+
+    /**
+     * Checks if the table contains the key.
+     */
+    bool contains(const variable &key) const { return entries.contains(key); }
+    size_t size() const { return entries.size(); }
+
+    std::unordered_map<variable, variable, variable_hasher, variable_equal> &get_entries() { return entries; }
+    const std::unordered_map<variable, variable, variable_hasher, variable_equal> &get_entries() const { return entries; }
+
+    std::unordered_map<variable, variable, variable_hasher, variable_equal>::iterator begin() { return entries.begin(); }
+    std::unordered_map<variable, variable, variable_hasher, variable_equal>::iterator end() { return entries.end(); }
+    std::unordered_map<variable, variable, variable_hasher, variable_equal>::const_iterator begin() const { return entries.begin(); }
+    std::unordered_map<variable, variable, variable_hasher, variable_equal>::const_iterator end() const { return entries.end(); }
+
+    lentus_table &operator=(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &new_entries)
+    {
+        entries = new_entries;
+        return *this;
+    }
+    lentus_table &operator=(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&new_entries)
+    {
+        entries = std::move(new_entries);
+        return *this;
+    }
+
+    lentus_table &operator=(const lentus_table &other)
+    {
+        entries = other.entries;
+        return *this;
+    }
+
+    lentus_table &operator=(lentus_table &&other)
+    {
+        entries = std::move(other.entries);
+        return *this;
+    }
+
+    std::string to_string() const override { return "<table @" + std::to_string((size_t)this) + ">"; }
+};
+
+
+class lentus_list : public variable_block
+{
+private:
+    std::vector<variable> elements;
+
+public:
+    lentus_list() : elements() {}
+    lentus_list(const std::vector<variable> &elements) : elements(elements) {}
+    lentus_list(std::vector<variable> &&elements) : elements(std::move(elements)) {}
+
+    variable &operator[](size_t index) { return elements[index]; }
+    const variable &operator[](size_t index) const { return elements[index]; }
+
+    variable &at(size_t index) { return elements.at(index); }
+    const variable &at(size_t index) const { return elements.at(index); }
+
+    void push_back(const variable &var) { elements.push_back(var); }
+    void push_back(variable &&var) { elements.push_back(std::move(var)); }
+
+    void pop_back() { elements.pop_back(); }
+    void remove(size_t index) { elements.erase(elements.begin() + index); }
+
+    size_t size() const { return elements.size(); }
+    std::vector<variable> &get_elements() { return elements; }
+    const std::vector<variable> &get_elements() const { return elements; }
+
+    std::vector<variable>::iterator begin() { return elements.begin(); }
+    std::vector<variable>::iterator end() { return elements.end(); }
+    std::vector<variable>::const_iterator begin() const { return elements.begin(); }
+    std::vector<variable>::const_iterator end() const { return elements.end(); }
+
+    lentus_list &operator=(const std::vector<variable> &new_elements)
+    {
+        elements = new_elements;
+        return *this;
+    }
+    lentus_list &operator=(std::vector<variable> &&new_elements)
+    {
+        elements = std::move(new_elements);
+        return *this;
+    }
+
+    std::string to_string() const override { return "<list @" + std::to_string((size_t)this) + ">"; }
+};
+
+class lentus_string : public variable_block
+{
+private:
+    std::string value;
+
+public:
+    lentus_string() : value("") {}
+    lentus_string(const std::string &value) : value(value) {}
+    lentus_string(std::string &&value) : value(std::move(value)) {}
+
+    const std::string &get_value() const { return value; }
+    std::string &get_value() { return value; }
+
+    const std::string &operator*() const { return value; }
+    std::string &operator*() { return value; }
+
+    const std::string *operator->() const { return &value; }
+    std::string *operator->() { return &value; }
+
+    void operator=(const std::string &new_value) { value = new_value; }
+    void operator=(std::string &&new_value) { value = std::move(new_value); }
+
+    std::string to_string() const override { return value; }
+};
+
+
 /**
  * A reference to a variable.
  * If the reference is a modifiable reference, the reference holds a pointer to the variable
@@ -275,7 +309,7 @@ public:
         }
         else
         {
-            direct_value = other.direct_value;
+            new (&direct_value) variable(other.direct_value);
             is_modifiable = false;
         }
     }
@@ -289,13 +323,13 @@ public:
         }
         else
         {
-            direct_value = std::move(other.direct_value);
+            new (&direct_value) variable(std::move(other.direct_value));
             is_modifiable = false;
         }
     }
 
     const variable get() const { return is_modifiable ? *modifiable_value : direct_value; }
-    const variable &operator*() const { return is_modifiable ? *modifiable_value : direct_value; }
+    const variable operator*() const { return is_modifiable ? *modifiable_value : direct_value; }
     const variable *operator->() const { return is_modifiable ? modifiable_value : &direct_value; }
 
     /**
@@ -318,8 +352,12 @@ public:
      */
     reference &operator=(variable *var)
     {
-        modifiable_value = var;
+        if (!is_modifiable)
+        {
+            direct_value.~variable();
+        }
         is_modifiable = true;
+        modifiable_value = var;
         return *this;
     }
     /**
@@ -327,8 +365,12 @@ public:
      */
     reference &operator=(variable &&var)
     {
-        direct_value = std::move(var);
+        if (!is_modifiable)
+        {
+            direct_value.~variable();
+        }
         is_modifiable = false;
+        new (&direct_value) variable(std::move(var));
         return *this;
     }
 
@@ -337,8 +379,12 @@ public:
      */
     reference &operator=(const variable &var)
     {
-        direct_value = var;
+        if (!is_modifiable)
+        {
+            direct_value.~variable();
+        }
         is_modifiable = false;
+        new (&direct_value) variable(var);
         return *this;
     }
 
@@ -346,6 +392,11 @@ public:
     {
         if (this != &other)
         {
+            if (!is_modifiable)
+            {
+                direct_value.~variable();
+            }
+
             if (other.is_modifiable)
             {
                 modifiable_value = other.modifiable_value;
@@ -353,7 +404,7 @@ public:
             }
             else
             {
-                direct_value = other.direct_value;
+                new (&direct_value) variable(other.direct_value);
                 is_modifiable = false;
             }
         }
@@ -364,6 +415,11 @@ public:
     {
         if (this != &other)
         {
+            if (!is_modifiable)
+            {
+                direct_value.~variable();
+            }
+
             if (other.is_modifiable)
             {
                 modifiable_value = other.modifiable_value;
@@ -371,7 +427,7 @@ public:
             }
             else
             {
-                direct_value = std::move(other.direct_value);
+                new (&direct_value) variable(std::move(other.direct_value));
                 is_modifiable = false;
             }
         }
@@ -380,7 +436,13 @@ public:
 
     bool is_modifiable_reference() const { return is_modifiable; }
 
-    ~reference() {};
+    ~reference()
+    {
+        if (!is_modifiable)
+        {
+            direct_value.~variable();
+        }
+    }
 };
 
 #endif

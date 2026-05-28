@@ -29,7 +29,7 @@ variable program::create_function(lentus_function *fn)
     return variable(fn);
 }
 
-function* program::track_native_function(function *fn)
+function *program::track_native_function(function *fn)
 {
     constant_blocks.push_back(fn);
     return fn;
@@ -116,12 +116,14 @@ std::optional<program_module *> program::load_module(const std::filesystem::path
 
 program::program() : anon_module(create_empty_table())
 {
-    native_functions = {
-        {"print", track_native_function(new print_function())},
-        {"print_line", track_native_function(new print_line_function())},
-        {"number", track_native_function(new number_cast_function())},
-        {"string", track_native_function(new string_cast_function())},
-    };
+    register_native_function("print", new print_function());
+    register_native_function("print_line", new print_line_function());
+    register_native_function("to_string", new string_cast_function());
+    register_native_function("to_number", new number_cast_function());
+    register_native_function("input", new input_function());
+    register_native_function("is_number", new is_number_function());
+    register_native_function("is_integer", new is_integer_function());
+    register_native_function("rand_int", new rand_int_function());
 }
 
 program::program(program &&prog) : anon_module(std::move(prog.anon_module))
@@ -159,4 +161,11 @@ program::~program()
     {
         delete var;
     }
+}
+
+function *program::register_native_function(std::string name, function *fn)
+{
+    function *registered_fn = track_native_function(fn);
+    native_functions[name] = registered_fn;
+    return registered_fn;
 }

@@ -111,3 +111,11 @@ std::optional<reference> execution_context::get_variable(const std::string &iden
 
     return std::nullopt;
 }
+
+void execution_context::stack_synchronize(int size)
+{
+    for (int i = stack.size(); i > size; i--)
+    {
+        stack.pop_back();
+    }
+}

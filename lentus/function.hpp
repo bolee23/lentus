@@ -32,7 +32,23 @@ class number_cast_function : public function
 public:
     number_cast_function() {};
     variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
-    std::string to_string() const override { return "<function number>"; }
+    std::string to_string() const override { return "<function to_number>"; }
+};
+
+class is_number_function : public function
+{
+public:
+    is_number_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function is_number>"; }
+};
+
+class is_integer_function : public function
+{
+public:
+    is_integer_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function is_integer>"; }
 };
 
 class string_cast_function : public function
@@ -40,14 +56,30 @@ class string_cast_function : public function
 public:
     string_cast_function() {};
     variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
-    std::string to_string() const override { return "<function string>"; }
+    std::string to_string() const override { return "<function to_string>"; }
+};
+
+class input_function : public function
+{
+public:
+    input_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function input>"; }
+};
+
+class rand_int_function : public function
+{
+public:
+    rand_int_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function random>"; }
 };
 
 class lentus_function : public function
 {
     // Known during parsing
     lentus_string *name;
-    statement *body; 
+    statement *body;
     const std::vector<lentus_string *> *parameter_names;
 
     // Known during runtime

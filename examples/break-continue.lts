@@ -1,0 +1,35 @@
+for (var i = 0; i < 10; i += 1) {
+    if i == 3 {
+        continue;
+    }
+    if i == 7 {
+        break;
+    }
+    print_line(i);
+}
+
+var i = 0;
+while true {
+    if i == 3 {
+        i += 1;
+        continue;
+    }
+    if i == 7 {
+        break;
+    }
+    print_line(i);
+    i += 1;
+}
+
+i = 0;
+do {
+    if i == 3 {
+        i += 1;
+        continue;
+    }
+    if i == 7 {
+        break;
+    }
+    print_line(i);
+    i += 1;
+} while true;

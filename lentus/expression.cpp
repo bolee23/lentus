@@ -320,6 +320,10 @@ reference binary_expression::evaluate(execution_context &execution) const
         {
             return reference(*lhs == *rhs);
         }
+        else if(lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
+        {
+            return reference(false);
+        }
         else
         {
             throw lentus_runtime_exception(std::string("Mismatched types in \"==\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
@@ -328,6 +332,10 @@ reference binary_expression::evaluate(execution_context &execution) const
         if (lhs->get_type() == rhs->get_type())
         {
             return reference(*lhs != *rhs);
+        }
+        else if(lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
+        {
+            return reference(true);
         }
         else
         {
@@ -540,6 +548,7 @@ function_expression &function_expression::operator=(function_expression &&other)
 {
     if (this != &other)
     {
+        delete body;
         name = other.name;
         other.name = nullptr;
         body = other.body;
@@ -561,7 +570,7 @@ reference function_expression::evaluate(execution_context &execution) const
     std::vector<lentus_table *> captured_stack;
 
     // Capture local variables
-    for (int i = stack.size(); i >= 0; i--)
+    for (int i = stack.size() - 1; i >= 0; i--)
     {
         stack_frame &frame = stack[i];
         if (frame.current_module != current_module)
@@ -571,11 +580,11 @@ reference function_expression::evaluate(execution_context &execution) const
         captured_stack.push_back(frame.local_variables);
     }
 
-        // Capture local variables from current function
+    // Capture local variables from current function
     if (current_fn != nullptr)
     {
         std::vector<lentus_table *> previous_captured_stack = current_fn->get_captured_variable_tables();
-        for (int i = previous_captured_stack.size(); i >= 0; i--)
+        for (int i = previous_captured_stack.size() - 1; i >= 0; i--)
         {
             captured_stack.push_back(previous_captured_stack[i]);
         }

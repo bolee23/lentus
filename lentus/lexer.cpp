@@ -43,6 +43,7 @@ const std::unordered_map<std::string, token_type> keywords = {
     {"return", token_type::RETURN},
     {"break", token_type::BREAK},
     {"continue", token_type::CONTINUE},
+    {"none", token_type::NONE},
 
     {"true", token_type::TRUE},
     {"false", token_type::FALSE},

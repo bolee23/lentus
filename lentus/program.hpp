@@ -40,10 +40,16 @@ public:
     variable track_variable(variable var);
 
     /**
-     * Track the given native function.
+     * Track the given native function for deallocation
      * Native functions are only deallocated when the program is deallocated.
      */
     function *track_native_function(function *fn);
+
+    /**
+     * Register a native function with the given name. The function will be tracked for deallocation.
+     * If a function with the same name already exists, it will be overwritten.
+     */
+    function *register_native_function(std::string name, function *fn);
 
     /**
      * Creates a variable that holds a pointer to the given lentus_function and tracks the lentus_function for deallocation.
