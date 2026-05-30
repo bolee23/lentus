@@ -146,6 +146,25 @@ public:
     const variable &at(const variable &key) const { return entries.at(key); }
 
     /**
+     * Accesses a copy of the value associated with the key. Returns std::nullopt if the key does not exist.
+     */
+    std::optional<variable> get(const variable &key) const
+    {
+        auto it = entries.find(key);
+        if (it != entries.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    variable &operator[](const variable &key) { return entries[key]; }
+    const variable &operator[](const variable &key) const { return entries.at(key); }
+
+    /**
      * Removes the key-value pair associated with the key. Returns true if the key was found and removed, false otherwise.
      */
     bool remove(const variable &key) { return entries.erase(key) > 0; }

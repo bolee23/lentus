@@ -1,0 +1,29 @@
+// Creating a list
+var lst = list("hello","world",3,4,5);
+
+print_line(lst[0]); // "hello"
+print_line(lst[1]); // "world"
+print_line(lst[2]); // 3
+print_line(lst[3]); // 4
+print_line(lst[4]); // 5
+
+// Assigning values to lists
+lst[2] = 10;
+lst[3]++;
+lst[4] *= 3;
+
+print_line(lst[2]); // 10
+print_line(lst[3]); // 5
+print_line(lst[4]); // 15
+
+// Append value to end of list
+list_add(lst, 100);
+print_line(lst[5]); // 100
+
+// Lists are shallow copied
+var lst_2 = lst;
+list_add(lst_2, 300);
+print_line(lst[6]); // 300
+
+// Error happens on out of bounds access
+print_line(lst[7]); // Error

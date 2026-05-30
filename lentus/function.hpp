@@ -75,6 +75,46 @@ public:
     std::string to_string() const override { return "<function random>"; }
 };
 
+class length_function : public function
+{
+public:
+    length_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function length>"; }
+};
+
+class list_function : public function
+{
+public:
+    list_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override { return execution.get_program().create_list(parameters); }
+    std::string to_string() const override { return "<function list>"; }
+};
+
+class table_function : public function
+{
+public:
+    table_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function table>"; }
+};
+
+class list_add_function : public function
+{
+public:
+    list_add_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function list_add>"; }
+};
+
+class list_remove_function : public function
+{
+public:
+    list_remove_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function list_remove>"; }
+};
+
 class lentus_function : public function
 {
     // Known during parsing

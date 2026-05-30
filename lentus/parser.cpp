@@ -2,9 +2,15 @@
 #include <iostream>
 #include "function.hpp"
 
+/**
+ * LENTUS PARSER
+ * This parser uses a recursive descent parsing approach.
+ *
+ */
+
+// Helper functions for parsing
 void write_error_message(parser_data &data, const std::string &message)
 {
-
     const token *current;
     int line_number;
     int line_start_position;
@@ -123,7 +129,7 @@ bool match_and_consume(parser_data &data, token_type type)
  * Function template for parsing left associative binary operators.
  * @param data Parser data
  * @param function Next highest precedence function
- * @param token_types Token types to check for
+ * @param token_types Token types to check for at this level of precedence
  * @return Parsed expression
  */
 template <typename F>
@@ -149,6 +155,16 @@ parse_result<expression> parse_expression(parser_data &data);
 parse_result<statement> parse_statement(parser_data &data, bool allow_declarations = true);
 parse_result<statement> parse_sequence(parser_data &data);
 
+// Parser
+
+/**
+ * Parses:
+ * literals
+ * grouping expressions (parentheses)
+ * identifiers
+ * @param data Parser data
+ * @return A primary expression, and error status.
+ */
 parse_result<expression> parse_primary(parser_data &data)
 {
     if (data.position >= (int)data.tokens.size())
@@ -205,7 +221,7 @@ parse_result<expression> parse_primary(parser_data &data)
         return {new identifier_expression(*current.get_identifier_name(), line_number, start_position, end_position), false};
     default:
     {
-        data.position++; // Don't keep parsing the same unexpected token
+        data.position++;
         // write_error_message(data, std::string("Unexpected token \"") + current.to_string(data.source_string) + "\"");
         return {new error_expression(), true};
         break;
@@ -214,92 +230,288 @@ parse_result<expression> parse_primary(parser_data &data)
 }
 
 /**
- * Parses a function call
+ * Parses function calls of the form expr(expr, expr, ...)
+ * @param data Parser data
+ * @param expr Expression being called
+ * @return Expression with function call applied, and error status.
  */
-parse_result<expression> parse_call(parser_data &data)
+parse_result<expression> parse_call(parser_data &data, expression *expr)
 {
+    bool error = false;
+    std::vector<expression *> arguments;
+
+    if (!match_and_consume(data, token_type::RIGHT_BRACKET)) // Call with arguments
+    {
+        do
+        {
+            if (check(data, token_type::RIGHT_BRACKET)) // Allow trailing comma after last argument ie (a, b,)
+            {
+                break;
+            }
+            parse_result<expression> arg_result = parse_expression(data);
+            error |= arg_result.error;
+            arguments.push_back(arg_result.ast);
+        } while (match_and_consume(data, token_type::COMMA));
+
+        if (!match_and_consume(data, token_type::RIGHT_BRACKET))
+        {
+            write_expectation_error_message(data, "')' after function call");
+            for (expression *argument : arguments)
+            {
+                delete argument;
+            }
+            data.position++;
+            return {new error_expression(), true};
+        }
+    }
+
+    return {new call_expression(expr, std::move(arguments), expr->get_line_number(), expr->get_start_position(), data.tokens[data.position - 1].get_end_position()), error};
+}
+
+/**
+ * Parses subscripts of the form expr[expr]
+ * @param data Parser data
+ * @param expr Expression before the subscript
+ * @return Expression with subscript applied, and error status.
+ */
+parse_result<expression> parse_subscript(parser_data &data, expression *expr)
+{
+    parse_result<expression> index_result = parse_expression(data);
+    bool error = index_result.error;
+    expression *index = index_result.ast;
+
+    if (!match_and_consume(data, token_type::RIGHT_INDEX))
+    {
+        write_expectation_error_message(data, "]' after subscript index");
+        delete index;
+        data.position++;
+        return {new error_expression(), true};
+    }
+
+    return {new subscript_expression(expr, index, expr->get_line_number(), expr->get_start_position(), data.tokens[data.position - 1].get_end_position()), error};
+}
+
+/**
+ * Parses member access using the dot operator
+ * @param data Parser data
+ * @param expr Expression before the dot operator
+ * @return Expression with member access applied, and error status.
+ */
+parse_result<expression> parse_member_access(parser_data &data, expression *expr)
+{
+    if (!check(data, token_type::IDENTIFIER))
+    {
+        write_expectation_error_message(data, "identifier after '.'");
+        data.position++;
+        return {new error_expression(), true};
+    }
+
+    const token &identifier_token = data.tokens[data.position];
+    data.position++;
+
+    lentus_string *identifier_string = new lentus_string(*identifier_token.get_identifier_name());
+    data.constant_blocks.push_back(identifier_string);
+    expression *right = new literal_expression(variable(identifier_string), identifier_token.get_line_number(), identifier_token.get_start_position(), identifier_token.get_end_position());
+
+    return {new subscript_expression(expr, right, expr->get_line_number(), expr->get_start_position(), identifier_token.get_end_position()), false};
+}
+
+/**
+ * Parses zero or more instances of function calls, subscripts, and member access (dot operator). All left associative.
+ * @param data Parser data
+ * @param expr Expression to apply accesses to.
+ * @return Expression with accesses applied, and error status.
+ */
+parse_result<expression> parse_accesses(parser_data &data, expression *expr)
+{
+    // accesses = (call | subscript | member_access)*
+    bool error = false;
+    while (true)
+    {
+        if (match_and_consume(data, token_type::LEFT_BRACKET))
+        {
+            parse_result<expression> call_result = parse_call(data, expr);
+            error |= call_result.error;
+            expr = call_result.ast;
+        }
+        else if (match_and_consume(data, token_type::LEFT_INDEX))
+        {
+            parse_result<expression> subscript_result = parse_subscript(data, expr);
+            error |= subscript_result.error;
+            expr = subscript_result.ast;
+        }
+        else if (match_and_consume(data, token_type::DOT))
+        {
+            parse_result<expression> member_result = parse_member_access(data, expr);
+            error |= member_result.error;
+            expr = member_result.ast;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return {expr, error};
+}
+
+/**
+ * Parses postfix increment/decrement (var++ and var--), and accesses (function calls, subscripts, member access).
+ * Also calls parse_access to parse function calls, subscripts and member access after primary expressions.
+ * All left associative.
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
+parse_result<expression> parse_postfix_access(parser_data &data)
+{
+    // postfix_access = primary ('++' | '--')* accesses ('++' | '--')*
     parse_result<expression> result = parse_primary(data);
     expression *expr = result.ast;
     bool error = result.error;
 
-    while (match_and_consume(data, token_type::LEFT_BRACKET))
+    // var++ and var--;
+    while (match_and_consume(data, {token_type::INCREMENT, token_type::DECREMENT}))
     {
-        std::vector<expression *> arguments;
+        token op = data.tokens[data.position - 1];
+        expr = new unary_expression(op, expr, true);
+    }
 
-        if (!match_and_consume(data, token_type::RIGHT_BRACKET)) // Call with arguments
-        {
-            // Add at least one argument, more if commas are observed
-            do
-            {
-                parse_result<expression> arg_result = parse_expression(data);
-                error |= arg_result.error;
-                arguments.push_back(arg_result.ast);
-            } while (match_and_consume(data, token_type::COMMA));
+    parse_result<expression> access_result = parse_accesses(data, expr);
+    expr = access_result.ast;
+    error |= access_result.error;
 
-            if (!match_and_consume(data, token_type::RIGHT_BRACKET))
-            {
-                write_expectation_error_message(data, "')' after function call");
-                for (expression *expr : arguments)
-                {
-                    delete expr;
-                }
-                data.position++;
-                return {new error_expression(), true};
-            }
-        }
-
-        expr = new call_expression(expr, std::move(arguments), expr->get_line_number(), expr->get_start_position(), data.tokens[data.position - 1].get_end_position());
+    // Handle var[i](j)[k]++ and --;
+    while (match_and_consume(data, {token_type::INCREMENT, token_type::DECREMENT}))
+    {
+        token op = data.tokens[data.position - 1];
+        expr = new unary_expression(op, expr, true);
     }
 
     return {expr, error};
 }
 
-parse_result<expression> parse_not_subtract(parser_data &data)
+/**
+ * Parses prefix increment/decrement (++x, --x), which are right associative.
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
+parse_result<expression> parse_prefix(parser_data &data)
 {
-    if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
+    // prefix = ('++' | '--')...? postfix_access
+    // Increment and decrement are right associative
+    if (match_and_consume(data, token_type::INCREMENT)) // Prefix increment
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_not_subtract(data);
+        parse_result<expression> operand_result = parse_prefix(data);
+        expression *right = operand_result.ast;
+
+        return {new unary_expression(op, right), operand_result.error};
+    }
+    else if (match_and_consume(data, token_type::DECREMENT)) // Prefix decrement
+    {
+        token op = data.tokens[data.position - 1];
+        parse_result<expression> operand_result = parse_prefix(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
     }
 
-    return parse_call(data);
+    return parse_postfix_access(data);
 }
 
+/**
+ * Parses logical NOT and negation, which are right associative.
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
+parse_result<expression> parse_negations(parser_data &data)
+{
+    // negations = ('!' | '-') (negations | prefix)
+    if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
+    {
+        token op = data.tokens[data.position - 1];
+        parse_result<expression> operand_result = parse_negations(data);
+        expression *right = operand_result.ast;
+
+        return {new unary_expression(op, right), operand_result.error};
+    }
+
+    return parse_prefix(data);
+}
+
+/**
+ * Parses multiplication and division
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_factor(parser_data &data)
 {
-    return parse_left_associative(data, parse_not_subtract, {token_type::MULTIPLY, token_type::DIVIDE});
+    // factor = negations (('*' | '/') negations)...?
+    return parse_left_associative(data, parse_negations, {token_type::MULTIPLY, token_type::DIVIDE});
 }
 
+/**
+ * Parses addition and subtraction
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_term(parser_data &data)
 {
+    // term = factor (('+' | '-') factor)...?
     return parse_left_associative(data, parse_factor, {token_type::ADD, token_type::SUBTRACT});
 }
 
+/**
+ * Parses comparison operators (>, >=, <, <=)
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_comparison(parser_data &data)
 {
+    // comparison = term (('>' | '>=' | '<' | '<=') term)...?
     return parse_left_associative(data, parse_term, {token_type::GREATER, token_type::GREATER_EQUAL, token_type::LESS, token_type::LESS_EQUAL});
 }
 
+/**
+ * Parses equality operators (== and !=)
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_equality(parser_data &data)
 {
+    // equality = comparison (('==' | '!=') comparison)...?
     return parse_left_associative(data, parse_comparison, {token_type::NOT_EQUAL, token_type::EQUAL});
 }
 
+/**
+ * Parses logical and expressions
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_logical_and(parser_data &data)
 {
+    // logical_and = equality ('&&' equality)...?
     return parse_left_associative(data, parse_equality, {token_type::AND});
 }
 
+/**
+ * Parses logical or expressions
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_logical_or(parser_data &data)
 {
+    // logical_or = logical_and ('||' logical_and)...?
     return parse_left_associative(data, parse_logical_and, {token_type::OR});
 }
 
+/**
+ * Parses direct assignment with the "=" operator, which is right associative.
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_direct_assignment(parser_data &data)
 {
+    // direct_assignment = logical_or (= direct_assignment)?
     parse_result<expression> left_result = parse_logical_or(data);
     expression *left = left_result.ast;
 
@@ -316,8 +528,14 @@ parse_result<expression> parse_direct_assignment(parser_data &data)
     return left_result;
 }
 
+/**
+ * Parses compound assignment operators (+=, -=, *=, /=) which are right associative.
+ * @param data Parser data
+ * @return Expression parsed up to this level of precedence, and error status.
+ */
 parse_result<expression> parse_compound_assignment(parser_data &data)
 {
+    // compound_assignment = direct_assignment (('+=' | '-=' | '*=' | '/=') compound_assignment)?
     parse_result<expression> left_result = parse_direct_assignment(data);
     expression *left = left_result.ast;
 
@@ -334,13 +552,25 @@ parse_result<expression> parse_compound_assignment(parser_data &data)
     return left_result;
 }
 
+/**
+ * Parses an expression.
+ * @param data Parser data
+ * @return Parsed expression, and error status.
+ */
 parse_result<expression> parse_expression(parser_data &data)
 {
+    // expression = compound_assignment
     return parse_compound_assignment(data);
 }
 
+/**
+ * Parses a variable declaration statement
+ * @data Parser data, with the "var" token already consumed.
+ * @return A declaration statement, and error status.
+ */
 parse_result<statement> parse_declaration(parser_data &data)
 {
+    // declaration = 'var' identifier ('=' expression)? ';'
     if (match_and_consume(data, token_type::IDENTIFIER))
     {
         const token &identifier_token = data.tokens[data.position - 1];
@@ -384,8 +614,14 @@ parse_result<statement> parse_declaration(parser_data &data)
     }
 }
 
+/**
+ * Parses an expression followed by a semicolon into an expression statement.
+ * @param data Parser data
+ * @return An expression statement, and error status.
+ */
 parse_result<statement> parse_expression_statement(parser_data &data)
 {
+    // expression_statement = expression ';'
     parse_result<expression> expr_result = parse_expression(data);
     if (match_and_consume(data, token_type::END_STATEMENT))
     {
@@ -398,8 +634,14 @@ parse_result<statement> parse_expression_statement(parser_data &data)
     }
 }
 
+/**
+ * Parses a for statement
+ * @data Parser data, with the "for" token already consumed.
+ * @return A for statement, and error status.
+ */
 parse_result<statement> parse_for_statement(parser_data &data)
 {
+    // for_statement = 'for' '(' (statement | ';') expression? ';' expression? ')' statement
     if (!match_and_consume(data, token_type::LEFT_BRACKET))
     {
         write_expectation_error_message(data, "'(' after 'for'");
@@ -454,8 +696,14 @@ parse_result<statement> parse_for_statement(parser_data &data)
     return {new for_statement(initializer, condition_result.ast, post_iteration, body_result.ast, line_number, start_position, end_position), error};
 }
 
+/**
+ * Parses a while statement, with the "while" token already consumed.
+ * @param data Parser data, with the "while" token already consumed.
+ * @return A loop statement with is_do_while = false, and error status.
+ */
 parse_result<statement> parse_while_statement(parser_data &data)
 {
+    // while_statement = 'while' expression statement
     parse_result<expression> condition_result = parse_expression(data);
     bool error = condition_result.error;
     int line_number = condition_result.ast->get_line_number();
@@ -468,8 +716,14 @@ parse_result<statement> parse_while_statement(parser_data &data)
     return {new loop_statement(condition_result.ast, body_result.ast, false, line_number, start_position, end_position), error};
 }
 
+/**
+ * Parses a do-while statement, with the "do" token already consumed.
+ * @param data Parser data, with the "do" token already consumed.
+ * @return A loop statement with is_do_while = true, and error status.
+ */
 parse_result<statement> parse_do_statement(parser_data &data)
 {
+    // do_statement = 'do' statement 'while' expression ';'
     parse_result<statement> body_result = parse_statement(data);
     bool error = body_result.error;
     int line_number = body_result.ast->get_line_number();
@@ -494,8 +748,14 @@ parse_result<statement> parse_do_statement(parser_data &data)
     return {new loop_statement(condition_result.ast, body_result.ast, true, line_number, start_position, end_position), error};
 }
 
+/**
+ * Parses an if statement, with optional else branch.
+ * @param data Parser data, with the "if" token already consumed.
+ * @return An if statement, and error status.
+ */
 parse_result<statement> parse_if_statement(parser_data &data)
 {
+    // if_statement = 'if' expression statement ('else' statement)?
     parse_result<expression> condition_result = parse_expression(data);
     bool error = condition_result.error;
     int line_number = condition_result.ast->get_line_number();
@@ -524,8 +784,14 @@ parse_result<statement> parse_if_statement(parser_data &data)
     return {new if_statement(condition_result.ast, then_branch_result.ast, else_branch, line_number, start_position, end_position), error};
 }
 
+/**
+ * Parses a sequence of statements enclosed in {} braces.
+ * @param data Parser data, with the left brace already consumed.
+ * @return A sequence statement containing the parsed statements, and error status.
+ */
 parse_result<statement> parse_braced_sequence(parser_data &data)
 {
+    // braced_sequence = '{' statement* '}'
     std::vector<statement *> statements;
     bool error = false;
 
@@ -545,8 +811,16 @@ parse_result<statement> parse_braced_sequence(parser_data &data)
     return {new sequence_statement(std::move(statements)), true};
 }
 
+/**
+ * Parses a function declaration.
+ * @param data Parser data, with the "func" token already consumed.
+ * @return A declaration statement with the inner expression being a function expression, and error status.
+ */
 parse_result<statement> parse_function_declaration(parser_data &data)
 {
+    // var keyword is optional for parameters
+    // trailing comma is allowed
+    // function_declaration = 'function' identifier '(' ( 'var'? identifier (',' 'var'? identifier)* ','? )? ')' statement
     if (!match_and_consume(data, token_type::IDENTIFIER))
     {
         write_expectation_error_message(data, "function name after 'function'");
@@ -570,7 +844,6 @@ parse_result<statement> parse_function_declaration(parser_data &data)
     while (!match_and_consume(data, token_type::RIGHT_BRACKET))
     {
         // Consume "var" before parameter name but this is optional.
-        // function(var x) and function(x) are allowed.
         match_and_consume(data, token_type::VAR);
 
         if (!match_and_consume(data, token_type::IDENTIFIER))
@@ -606,8 +879,14 @@ parse_result<statement> parse_function_declaration(parser_data &data)
     return {declaration, error};
 }
 
+/**
+ * Parses a return statement.
+ * @param data Parser data, with the return token already consumed.
+ * @return A return statement, and error status.
+ */
 parse_result<statement> parse_return_statement(parser_data &data)
 {
+    // return_statement = 'return' expression? ';'
     if (match_and_consume(data, token_type::END_STATEMENT))
     {
         const token &tok = data.tokens[data.position - 2];
@@ -634,8 +913,14 @@ parse_result<statement> parse_return_statement(parser_data &data)
     }
 }
 
+/**
+ * Parses a break statement.
+ * @param data Parser data, with the break token already consumed.
+ * @return A break statement, and error status.
+ */
 parse_result<statement> parse_break_statement(parser_data &data)
 {
+    // break_statement = 'break' ';'
     const token &tok = data.tokens[data.position - 1];
     if (!match_and_consume(data, token_type::END_STATEMENT))
     {
@@ -645,8 +930,14 @@ parse_result<statement> parse_break_statement(parser_data &data)
     return {new break_statement(tok.get_line_number(), tok.get_start_position(), data.tokens[data.position - 1].get_end_position()), false};
 }
 
+/**
+ * Parses a continue statement.
+ * @param data Parser data, with the continue token already consumed.
+ * @return A continue statement, and error status.
+ */
 parse_result<statement> parse_continue_statement(parser_data &data)
 {
+    // continue_statement = 'continue' ';'
     const token &tok = data.tokens[data.position - 1];
     if (!match_and_consume(data, token_type::END_STATEMENT))
     {
@@ -656,8 +947,14 @@ parse_result<statement> parse_continue_statement(parser_data &data)
     return {new continue_statement(tok.get_line_number(), tok.get_start_position(), data.tokens[data.position - 1].get_end_position()), false};
 }
 
+/**
+ * Parses an individual statement.
+ * @param allow_declarations Whether to allow variable or function declarations in this statement.
+ * @return Parsed statement, and error status.
+ */
 parse_result<statement> parse_statement(parser_data &data, bool allow_declarations)
 {
+    // statement = return_statement | ... | expression_statement
     if (data.position >= (int)data.tokens.size())
     {
         write_error_message(data, "Unexpected end of input, expected statement");
@@ -718,8 +1015,13 @@ parse_result<statement> parse_statement(parser_data &data, bool allow_declaratio
     }
 }
 
+/**
+ * Parses a sequence of statements.
+ * @return A sequence statement, and error status.
+ */
 parse_result<statement> parse_sequence(parser_data &data)
 {
+    // sequence = statement*
     std::vector<statement *> statements;
     bool error = false;
 
@@ -733,6 +1035,10 @@ parse_result<statement> parse_sequence(parser_data &data)
     return {new sequence_statement(std::move(statements)), error};
 }
 
+/**
+ * The top level parser function.
+ * @return A sequence statement, and error status.
+ */
 parse_result<statement> parse_module(parser_data &data)
 {
     return parse_sequence(data);

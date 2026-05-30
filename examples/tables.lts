@@ -1,0 +1,44 @@
+
+var tbl = table (
+    "zero", 0,
+    "one", 1,
+    "two", 2,
+    "three", 3,
+    "four", 4,
+    "five", 5,
+);
+
+print_line("Five: ", tbl["five"]);
+print_line("One: ", tbl["one"]);
+
+tbl["six"] = 6;
+tbl["eight"] = 6;
+
+// Can access string entries with "[]" or "."
+tbl["eight"]++;
+tbl.eight++;
+
+print_line("Six: ", tbl["six"]);
+print_line("Eight: ", tbl.eight);
+
+// Tables are shallowly copied
+var tbl_2 = tbl;
+tbl_2["nine"] = 9;
+
+print_line("Nine: ", tbl["nine"]);
+
+// Can insert the none type, booleans and numbers into the same table.
+tbl[none] = "None";
+tbl[true] = "True";
+tbl[5] = "Five";
+
+print_line("None: ", tbl[none]);
+print_line("True: ", tbl[true]);
+print_line("5: ", tbl[5]);
+
+// No entry -> gives none
+print_line("Ten: ", tbl[10]);
+
+
+
+

@@ -39,9 +39,10 @@ class unary_expression : public expression
 private:
     token op;
     expression *operand;
+    bool is_postfix; /** true for var++ and var--, false for ++var and --var */
 
 public:
-    unary_expression(const token &op, expression *operand) : op(op), operand(operand)
+    unary_expression(const token &op, expression *operand, bool is_postfix = false) : op(op), operand(operand), is_postfix(is_postfix)
     {
         this->line_number = op.get_line_number();
         this->start_position = op.get_start_position();
@@ -58,6 +59,11 @@ public:
 
     token get_operator() const { return op; }
     expression *get_operand() const { return operand; }
+
+    /**
+     * For increment/decrement, returns true if the operator is a postfix operator (var++/var--)
+     */
+    bool is_postfix_operator() const { return is_postfix; }
 
     virtual std::string to_string() const override;
 
@@ -94,6 +100,36 @@ public:
     virtual std::string to_string() const override;
 
     ~binary_expression() override;
+};
+
+class subscript_expression : public expression
+{
+private:
+    expression *left;
+    expression *right;
+
+public:
+    subscript_expression(expression *lhs, expression *rhs, int line_number, int start_position, int end_position) : left(lhs), right(rhs)
+    {
+        this->line_number = line_number;
+        this->start_position = start_position;
+        this->end_position = end_position;
+    }
+
+    subscript_expression(const subscript_expression &other) = delete;
+    subscript_expression &operator=(const subscript_expression &other) = delete;
+
+    subscript_expression(subscript_expression &&other);
+    subscript_expression &operator=(subscript_expression &&other);
+
+    reference evaluate(execution_context &execution) const override;
+
+    expression *get_left() const { return left; }
+    expression *get_right() const { return right; }
+
+    virtual std::string to_string() const override;
+
+    ~subscript_expression() override;
 };
 
 class literal_expression : public expression
@@ -226,20 +262,18 @@ public:
     const std::vector<expression *> &get_arguments() const { return arguments; }
 
     virtual std::string to_string() const override;
-    ~call_expression() override = default;
+    ~call_expression() override;
 };
-
-
 
 class function_expression : public expression
 {
 private:
     lentus_string *name; // optional
     statement *body;
-    std::vector<lentus_string*> parameter_names;
+    std::vector<lentus_string *> parameter_names;
 
 public:
-    function_expression(lentus_string *name, statement *body, std::vector<lentus_string*> &&parameter_names, int line_number, int start_position, int end_position) : name(name), body(body), parameter_names(std::move(parameter_names))
+    function_expression(lentus_string *name, statement *body, std::vector<lentus_string *> &&parameter_names, int line_number, int start_position, int end_position) : name(name), body(body), parameter_names(std::move(parameter_names))
     {
         this->line_number = line_number;
         this->start_position = start_position;
@@ -255,7 +289,7 @@ public:
     reference evaluate(execution_context &execution) const override;
     const lentus_string *get_name() const { return name; }
     const statement *get_body() const { return body; }
-    const std::vector<lentus_string*> &get_parameter_names() const { return parameter_names; }
+    const std::vector<lentus_string *> &get_parameter_names() const { return parameter_names; }
 
     virtual std::string to_string() const override;
     ~function_expression() override;

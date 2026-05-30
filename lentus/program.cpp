@@ -153,6 +153,11 @@ program::program() : anon_module(create_empty_table())
     register_native_function("is_number", new is_number_function());
     register_native_function("is_integer", new is_integer_function());
     register_native_function("rand_int", new rand_int_function());
+    register_native_function("list", new list_function());
+    register_native_function("table", new table_function());
+    register_native_function("length", new length_function());
+    register_native_function("list_add", new list_add_function());
+    register_native_function("list_remove", new list_remove_function());
 }
 
 program::program(program &&prog) : anon_module(std::move(prog.anon_module))

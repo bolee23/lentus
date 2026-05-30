@@ -38,7 +38,5 @@ while true {
         print_line("The number was: ", number);
         break;
     }
-
-    guess_number += 1;
 }
 

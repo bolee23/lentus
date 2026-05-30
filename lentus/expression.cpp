@@ -16,6 +16,7 @@ unary_expression &unary_expression::operator=(unary_expression &&other)
 {
     if (this != &other)
     {
+        delete operand;
         op = std::move(other.op);
         operand = other.operand;
         other.operand = nullptr;
@@ -63,6 +64,39 @@ std::string binary_expression::to_string() const
 }
 
 binary_expression::~binary_expression()
+{
+    delete left;
+    delete right;
+}
+
+subscript_expression::subscript_expression(subscript_expression &&other)
+{
+    left = other.left;
+    right = other.right;
+    other.left = nullptr;
+    other.right = nullptr;
+}
+
+subscript_expression &subscript_expression::operator=(subscript_expression &&other)
+{
+    if (this != &other)
+    {
+        delete left;
+        delete right;
+        left = other.left;
+        right = other.right;
+        other.left = nullptr;
+        other.right = nullptr;
+    }
+    return *this;
+}
+
+std::string subscript_expression::to_string() const
+{
+    return "INDEX[" + this->left->to_string() + ", " + this->right->to_string() + "]";
+}
+
+subscript_expression::~subscript_expression()
 {
     delete left;
     delete right;
@@ -188,6 +222,11 @@ call_expression &call_expression::operator=(call_expression &&other)
 {
     if (this != &other)
     {
+        delete callee;
+        for (expression *argument : arguments)
+        {
+            delete argument;
+        }
         this->callee = other.callee;
         other.callee = nullptr;
         this->arguments = std::move(other.arguments);
@@ -212,6 +251,35 @@ std::string call_expression::to_string() const
     }
     str += ")]";
     return str;
+}
+
+call_expression::~call_expression()
+{
+    delete callee;
+    for (expression *argument : arguments)
+    {
+        delete argument;
+    }
+}
+
+std::string function_expression::to_string() const
+{
+    std::string str = "FUNCTION[";
+    if (name != nullptr)
+    {
+        str += name->get_value();
+    }
+    else
+    {
+        str += "<anonymous>";
+    }
+    str += "] {\n" + body->to_string() + "}";
+    return str;
+}
+
+function_expression::~function_expression()
+{
+    delete body;
 }
 
 reference error_expression::evaluate([[maybe_unused]] execution_context &execution) const
@@ -242,13 +310,45 @@ reference unary_expression::evaluate(execution_context &execution) const
             throw lentus_runtime_exception(std::string("Invalid type in logical NOT: BOOLEAN expected, got ") + rhs->get_type_name() + " instead", this);
         }
         return reference(!rhs->get_boolean());
+    case token_type::INCREMENT:
+        if (!rhs->is(variable_type::NUMBER))
+        {
+            throw lentus_runtime_exception(std::string("Invalid type in increment: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
+        }
+        if (is_postfix) // var++;
+        {
+            reference original = rhs;
+            *rhs = variable(rhs->get_number() + 1);
+            return original;
+        }
+        else // ++var;
+        {
+            *rhs = variable(rhs->get_number() + 1);
+            return rhs;
+        }
+    case token_type::DECREMENT:
+        if (!rhs->is(variable_type::NUMBER))
+        {
+            throw lentus_runtime_exception(std::string("Invalid type in decrement: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
+        }
+        if (is_postfix) // var--;
+        {
+            reference original = rhs;
+            *rhs = variable(rhs->get_number() - 1);
+            return original;
+        }
+        else // --var;
+        {
+            *rhs = variable(rhs->get_number() - 1);
+            return rhs;
+        }
     default:
         throw lentus_runtime_exception("Invalid unary operator token " + op.to_string(), this);
     }
 }
 
 /**
- * Helper function for checking the data for antisymmetric comparison operators (<=, <, >=, >)
+ * checks the data types for antisymmetric comparison operators (<=, <, >=, >)
  */
 void antisymmetric_comparison_check(const binary_expression *ptr, reference lhs, reference rhs)
 {
@@ -320,7 +420,7 @@ reference binary_expression::evaluate(execution_context &execution) const
         {
             return reference(*lhs == *rhs);
         }
-        else if(lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
+        else if (lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
         {
             return reference(false);
         }
@@ -333,7 +433,7 @@ reference binary_expression::evaluate(execution_context &execution) const
         {
             return reference(*lhs != *rhs);
         }
-        else if(lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
+        else if (lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
         {
             return reference(true);
         }
@@ -598,22 +698,36 @@ reference function_expression::evaluate(execution_context &execution) const
     return execution.get_program().create_function(new lentus_function(name, body, &parameter_names, current_module, std::move(captured_stack)));
 }
 
-std::string function_expression::to_string() const
+reference subscript_expression::evaluate(execution_context &execution) const
 {
-    std::string str = "FUNCTION[";
-    if (name != nullptr)
+    reference left_ref = left->evaluate(execution);
+    reference right_ref = right->evaluate(execution);
+
+    if (left_ref->is(variable_type::TABLE)) // Index into table
     {
-        str += name->get_value();
+        if (right_ref->is(variable_type::TABLE) || right_ref->is(variable_type::FUNCTION) || right_ref->is(variable_type::LIST))
+        {
+            throw lentus_runtime_exception("Invalid table key type " + right_ref->get_type_name(), this);
+        }
+        lentus_table *table = left_ref->get_table();
+        return reference(&table->operator[](*right_ref));
+    }
+    else if (left_ref->is(variable_type::LIST)) // Index into list
+    {
+        lentus_list *list = left_ref->get_list();
+        if (!right_ref->is(variable_type::NUMBER))
+        {
+            throw lentus_runtime_exception(std::string("List index must be a number, got ") + right_ref->get_type_name(), this);
+        }
+        int index = (int)right_ref->get_number();
+        if (index < 0 || index >= list->size())
+        {
+            throw lentus_runtime_exception(std::string("List index ") + std::to_string(index) + " out of bounds for list size " + std::to_string(list->size()), this);
+        }
+        return reference(&(*list)[index]);
     }
     else
     {
-        str += "<anonymous>";
+        throw lentus_runtime_exception(std::string("Attempted to index into a value of type ") + left_ref->get_type_name(), this);
     }
-    str += "] {\n" + body->to_string() + "}";
-    return str;
-}
-
-function_expression::~function_expression()
-{
-    delete body;
 }

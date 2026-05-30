@@ -73,7 +73,7 @@ variable number_cast_function::evaluate([[maybe_unused]] execution_context &exec
     }
 }
 
-variable is_number_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable is_number_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 1, executor);
 
@@ -108,7 +108,7 @@ variable is_number_function::evaluate(execution_context &execution, std::vector<
     }
 }
 
-variable is_integer_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable is_integer_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 1, executor);
 
@@ -143,7 +143,7 @@ variable is_integer_function::evaluate(execution_context &execution, std::vector
     }
 }
 
-variable string_cast_function::evaluate(execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
+variable string_cast_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 1, executor);
     return execution.get_program().create_string(parameters[0].to_string());
@@ -198,14 +198,14 @@ lentus_function::lentus_function(lentus_function &&other)
     captured_variable_tables = other.captured_variable_tables;
 }
 
-variable input_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable input_function::evaluate([[maybe_unused]] execution_context &execution, [[maybe_unused]] std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
     std::string input;
-    std::cin >> input;
-    return execution.get_program().create_string(input);
+    std::getline(std::cin, input);
+    return execution.get_program().create_string(std::move(input));
 }
 
-variable rand_int_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable rand_int_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 2, executor);
 
@@ -231,4 +231,78 @@ variable rand_int_function::evaluate(execution_context &execution, std::vector<v
     std::uniform_int_distribution<> dis(min, max);
     long long result = dis(gen);
     return variable((double)result);
+}
+
+variable length_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    validate_num_arguments(*this, parameters, 1, executor);
+
+    if (parameters[0].is(variable_type::LIST))
+    {
+        return variable((double)parameters[0].get_list()->size());
+    }
+    else if (parameters[0].is(variable_type::STRING))
+    {
+        return variable((double)parameters[0].get_string()->get_value().size());
+    }
+    else if (parameters[0].is(variable_type::TABLE))
+    {
+        return variable((double)parameters[0].get_table()->size());
+    }
+    else
+    {
+        throw lentus_runtime_exception("Argument to length function must be a list, table or string", executor);
+    }
+}
+
+variable table_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    if (parameters.size() % 2 != 0)
+    {
+        throw lentus_runtime_exception("create_table function requires an even number of arguments for key value pairs", executor);
+    }
+    else
+    {
+        variable table = execution.get_program().create_empty_table();
+        for (size_t i = 0; i < parameters.size(); i += 2)
+        {
+            if(parameters[i].is(variable_type::TABLE) || parameters[i].is(variable_type::FUNCTION) || parameters[i].is(variable_type::LIST))
+            {
+                throw lentus_runtime_exception("Invalid table key type " + parameters[i].get_type_name(), executor);
+            }
+            table.get_table()->add(parameters[i], parameters[i + 1]);
+        }
+        return table;
+    }
+}
+
+variable list_add_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    validate_num_arguments(*this, parameters, 2, executor);
+    if (!parameters[0].is(variable_type::LIST))
+    {
+        throw lentus_runtime_exception("First argument to list_add must be a list", executor);
+    }
+    parameters[0].get_list()->push_back(parameters[1]);
+    return variable();
+}
+
+variable list_remove_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    validate_num_arguments(*this, parameters, 2, executor);
+    if (!parameters[0].is(variable_type::LIST))
+    {
+        throw lentus_runtime_exception("First argument to list_remove must be a list", executor);
+    }
+    if (!parameters[1].is(variable_type::NUMBER))
+    {
+        throw lentus_runtime_exception("Second argument to list_remove must be a number", executor);
+    }
+    size_t index = (size_t)parameters[1].get_number();
+    if (index >= parameters[0].get_list()->size() || index < 0)
+    {
+        throw lentus_runtime_exception("Index out of bounds for list_remove", executor);
+    }
+    parameters[0].get_list()->remove(index);
+    return variable();
 }
