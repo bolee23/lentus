@@ -1,0 +1,274 @@
+var NO_PRODUCT_FOUND = -1;
+
+func read_integer_range(prompt, min, max) {
+    var input_str;
+    
+    while true {
+        print(prompt);
+        input_str = input();
+        if not is_integer(input_str) {
+            print_line("Not an integer");
+            continue;
+        }
+        if not (to_number(input_str) >= min) and not (to_number(input_str) <= max) {
+            print_line("Integer out of range");
+            continue;
+        }
+        break;
+    }
+
+    return to_number(input_str);
+}
+
+func read_integer(prompt) {
+    var input_str;
+    
+    while true {
+        print(prompt);
+        input_str = input();
+        if not is_integer(input_str) {
+            print_line("Not an integer");
+            continue;
+        }
+        break;
+    }
+
+    return to_number(input_str);
+}
+
+
+func read_number(prompt) {
+    var input_str;
+
+    do {
+        print(prompt);
+        input_str = input();
+    } while !is_number(input_str);
+
+    return to_number(input_str);
+}
+
+func read_string(prompt) {
+    print(prompt);
+    return input();
+}
+
+func print_product(product) {
+    print_line(product.name);
+    print_line("Cost Price: $", product.cost_price);
+    print_line("Sale Price: $", product.cost_price);
+    print_line("Remaining Stock: ", product.stock);
+}
+
+func read_product() {
+    var product = table();
+
+    product.name = read_string("Name: ");
+    product.cost_price = read_number("Cost Price: ");
+    product.sale_price = read_number("Sale Price: ");
+    product.stock = read_integer("Stock: ");
+
+    return product;
+}
+
+func add_product(store) {
+    print_line("\nAdd Product");
+    var product = read_product();
+    list_add(store.products, product);
+
+    print_line("Added " + product.name + " to store");
+}
+
+func list_products(store) {
+    print_line("\nList of products:");
+    var products = store.products;
+
+    for (var i = 0; i < length(products); i++) {
+        print(to_string(i + 1) + ". ");
+        print_product(products[i]);
+    }
+
+    print_line("Number of products: " + to_string(length(products)));
+}
+
+func find_product(store) {
+    var num_products = length(store.products);
+
+    if num_products == 0 {
+        print_line("No products in store");
+        return NO_PRODUCT_FOUND;
+    }
+
+    var query = to_lowercase(read_string("Name: "));
+
+    // Indices of products that match query
+    var matching_indices = list();
+    var num_found = 0;
+
+    for (var i = 0; i < num_products; i++)
+    {
+        var product = store.products[i];
+
+        if (contains(to_lowercase(product.name), query))
+        {
+            num_found++;
+            print_line(to_string(num_found) + ": " + product.name);
+            list_add(matching_indices, i);
+        }
+    }
+
+    if length(matching_indices) == 0 {
+        print_line("No products found");
+        return NO_PRODUCT_FOUND;
+    }
+    else if length(matching_indices) == 1 {
+        print_line("Selected " + store.products[matching_indices[0]].name);
+        return matching_indices[0];
+    }
+
+    var choice = read_integer_range("Select a product: ", 1, length(matching_indices)) - 1;
+
+    return matching_indices[choice];
+}
+
+func sell_product(store) {
+    print_line("\nSell Product");
+    var product_index = find_product(store);
+    if product_index == NO_PRODUCT_FOUND {
+        return;
+    }
+
+    var product = store.products[product_index];
+    var stock = product.stock;
+
+    if stock == 0 {
+        print_line(product.name + " is out of stock.");
+        return;
+    }
+
+    var units_sold = read_integer_range("Number of units sold: ", 0, stock);
+    var sale_total = product.sale_price * units_sold;
+    var profit_total = (product.sale_price - product.cost_price) * units_sold;
+    
+    product.stock -= units_sold;
+    store.total_sales += sale_total;
+    store.total_profits += profit_total;
+
+    print_line("Remaining stock for " + product.name + ": " + to_string(product.stock));
+    print_line("Revenue gained: $" + to_string(sale_total));
+    print_line("Profit gained: $" + to_string(profit_total));
+}
+
+func delete_product(store) {
+    print_line("\nDelete Product");
+
+    var product_index = find_product(store);
+    if (product_index == NO_PRODUCT_FOUND)
+    {
+        return;
+    }
+
+    var name = store.products[product_index].name;
+
+    list_remove(store.products, product_index);
+
+    print_line(name + " has been deleted");
+}
+
+func print_main_menu()
+{
+    print_line("\nMain Menu");
+    print_line("1: Add product");
+    print_line("2: List products");
+    print_line("3: Update product");
+    print_line("4: Sell product");
+    print_line("5: Delete product");
+    print_line("6: Print status");
+    print_line("7: Quit");
+}
+
+func print_status(store)
+{
+    print_line("\nReport");
+
+    print_line("Total sales: $" + to_string(store.total_sales));
+    print_line("Total profits: $" + to_string(store.total_profits));
+    print_line("Number of products: " + to_string(length(store.products)));
+
+    var total_value = 0;
+    var num_low_stock = 0;
+    for (var i = 0; i < length(store.products); i++) {
+        var product = store.products[i];
+        total_value += product.cost_price * product.stock;
+
+        if (product.stock < 10)
+        {
+            num_low_stock++;
+        }
+    }
+
+    print_line("Number of products low in stock: " + to_string(num_low_stock));
+    print_line("Value of products in stock: $" + to_string(total_value));
+}
+
+func print_update_menu() {
+    print_line("\nUpdate Product");
+    print_line("1: Update name");
+    print_line("2: Update cost price");
+    print_line("3: Update sale price");
+    print_line("4: Update stock");
+    print_line("5: Exit update menu");
+}
+
+func update_product(store)
+{
+    var product_index = find_product(store);
+    if product_index == -1 {
+        return;
+    }
+
+    var product = store.products[product_index];
+
+    print_line("Current product details:");
+    print_product(product);
+
+    print_update_menu();
+    var choice = read_integer("Select an option: ");
+
+    if choice == 1 {
+        product.name = read_string("New name: ");
+    } else if choice == 2 {
+        product.cost_price = read_number("New cost price: ");
+    } else if choice == 3 {
+        product.cost_price = read_number("New sale price: ");
+    } else if choice == 4 {
+        product.stock = read_integer("New amount in stock: ");
+    }
+}
+
+var store = table();
+store.products = list();
+store.total_sales = 0;
+store.total_profits = 0;
+
+var choice;
+
+do
+{
+    print_main_menu();
+    choice = read_integer_range("Select an option: ", 1, 7);
+
+    if choice == 1 {
+        add_product(store);
+    } else if choice == 2 {
+        list_products(store);
+    } else if choice == 3 {
+        update_product(store);
+    } else if choice == 4 {
+        sell_product(store);
+    } else if choice == 5 {
+        delete_product(store);
+    } else if choice == 6 {
+        print_status(store);
+    }
+} while (choice != 7); // QUIT

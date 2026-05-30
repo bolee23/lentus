@@ -222,7 +222,7 @@ parse_result<expression> parse_primary(parser_data &data)
     default:
     {
         data.position++;
-        // write_error_message(data, std::string("Unexpected token \"") + current.to_string(data.source_string) + "\"");
+        write_error_message(data, std::string("Unexpected token \"") + current.to_string(data.source_string) + "\"");
         return {new error_expression(), true};
         break;
     }
@@ -891,7 +891,7 @@ parse_result<statement> parse_return_statement(parser_data &data)
     {
         const token &tok = data.tokens[data.position - 2];
         // return without value
-        return {new return_statement(nullptr, tok.get_line_number(), tok.get_start_position(), tok.get_end_position()), true};
+        return {new return_statement(nullptr, tok.get_line_number(), tok.get_start_position(), tok.get_end_position()), false};
     }
     else
     {

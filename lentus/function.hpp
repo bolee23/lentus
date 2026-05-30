@@ -87,7 +87,7 @@ class list_function : public function
 {
 public:
     list_function() {};
-    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override { return execution.get_program().create_list(parameters); }
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, [[maybe_unused]] const ast_node *executor) override { return execution.get_program().create_list(parameters); }
     std::string to_string() const override { return "<function list>"; }
 };
 
@@ -113,6 +113,30 @@ public:
     list_remove_function() {};
     variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
     std::string to_string() const override { return "<function list_remove>"; }
+};
+
+class contains_function : public function
+{
+public:
+    contains_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function contains>"; }
+};
+
+class to_lowercase_function : public function
+{
+public:
+    to_lowercase_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function to_lowercase>"; }
+};
+
+class to_uppercase_function : public function
+{
+public:
+    to_uppercase_function() {};
+    variable evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor) override;
+    std::string to_string() const override { return "<function to_uppercase>"; }
 };
 
 class lentus_function : public function

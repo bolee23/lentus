@@ -719,8 +719,8 @@ reference subscript_expression::evaluate(execution_context &execution) const
         {
             throw lentus_runtime_exception(std::string("List index must be a number, got ") + right_ref->get_type_name(), this);
         }
-        int index = (int)right_ref->get_number();
-        if (index < 0 || index >= list->size())
+        long long index = (long long)right_ref->get_number();
+        if (index < 0 || (size_t)index >= list->size())
         {
             throw lentus_runtime_exception(std::string("List index ") + std::to_string(index) + " out of bounds for list size " + std::to_string(list->size()), this);
         }

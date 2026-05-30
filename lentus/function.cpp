@@ -233,7 +233,7 @@ variable rand_int_function::evaluate([[maybe_unused]] execution_context &executi
     return variable((double)result);
 }
 
-variable length_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable length_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 1, executor);
 
@@ -266,7 +266,7 @@ variable table_function::evaluate(execution_context &execution, std::vector<vari
         variable table = execution.get_program().create_empty_table();
         for (size_t i = 0; i < parameters.size(); i += 2)
         {
-            if(parameters[i].is(variable_type::TABLE) || parameters[i].is(variable_type::FUNCTION) || parameters[i].is(variable_type::LIST))
+            if (parameters[i].is(variable_type::TABLE) || parameters[i].is(variable_type::FUNCTION) || parameters[i].is(variable_type::LIST))
             {
                 throw lentus_runtime_exception("Invalid table key type " + parameters[i].get_type_name(), executor);
             }
@@ -276,7 +276,7 @@ variable table_function::evaluate(execution_context &execution, std::vector<vari
     }
 }
 
-variable list_add_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable list_add_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 2, executor);
     if (!parameters[0].is(variable_type::LIST))
@@ -287,7 +287,7 @@ variable list_add_function::evaluate(execution_context &execution, std::vector<v
     return variable();
 }
 
-variable list_remove_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+variable list_remove_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
 {
     validate_num_arguments(*this, parameters, 2, executor);
     if (!parameters[0].is(variable_type::LIST))
@@ -298,11 +298,58 @@ variable list_remove_function::evaluate(execution_context &execution, std::vecto
     {
         throw lentus_runtime_exception("Second argument to list_remove must be a number", executor);
     }
-    size_t index = (size_t)parameters[1].get_number();
-    if (index >= parameters[0].get_list()->size() || index < 0)
+    size_t index = parameters[1].get_number();
+    if ((size_t)index >= parameters[0].get_list()->size()) // unsigned so don't need to check < 0
     {
         throw lentus_runtime_exception("Index out of bounds for list_remove", executor);
     }
     parameters[0].get_list()->remove(index);
     return variable();
+}
+
+variable contains_function::evaluate([[maybe_unused]] execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    validate_num_arguments(*this, parameters, 2, executor);
+    if (!parameters[0].is(variable_type::STRING))
+    {
+        throw lentus_runtime_exception("First argument to contains must be a string", executor);
+    }
+    if (!parameters[1].is(variable_type::STRING))
+    {
+        throw lentus_runtime_exception("Second argument to contains must be a string", executor);
+    }
+
+    return parameters[0].get_string()->get_value().contains(parameters[0].get_string()->get_value());
+}
+
+variable to_lowercase_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    validate_num_arguments(*this, parameters, 1, executor);
+    if (!parameters[0].is(variable_type::STRING))
+    {
+        throw lentus_runtime_exception("First argument to to_lowercase must be a string", executor);
+    }
+
+    std::string str = parameters[0].get_string()->get_value();
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+
+    return execution.get_program().create_string(str);
+}
+
+variable to_uppercase_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
+{
+    validate_num_arguments(*this, parameters, 1, executor);
+    if (!parameters[0].is(variable_type::STRING))
+    {
+        throw lentus_runtime_exception("First argument to to_uppercase must be a string", executor);
+    }
+
+    std::string str = parameters[0].get_string()->get_value();
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+
+    return execution.get_program().create_string(str);
 }

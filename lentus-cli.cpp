@@ -7,6 +7,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
     {
+        std::cout << "Lentus v0.0.1\nUsage: lentus <path> [--debug]" << std::endl;
         return 0;
     }
     else
@@ -14,11 +15,16 @@ int main(int argc, char **argv)
         const std::filesystem::path source_path(argv[1]);
 
         bool debug_mode = false;
+        
+        // Extra arguments
         if (argc >= 3)
         {
-            if (std::string(argv[2]) == "--debug")
+            for (int i = 2; i < argc; i++)
             {
-                debug_mode = true;
+                if (std::string(argv[i]) == "--debug")
+                {
+                    debug_mode = true;
+                }
             }
         }
 
