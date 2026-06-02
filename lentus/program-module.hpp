@@ -9,6 +9,9 @@
 #include "statement.hpp"
 class source_line;
 
+/**
+ * Represents the parsed code for a single source file in the Lentus language.
+ */
 class program_module
 {
 private:

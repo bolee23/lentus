@@ -6,6 +6,9 @@
 #include <unordered_map>
 #include <optional>
 
+/**
+ * Enumeration of all variable types in the Lentus language.
+ */
 enum class variable_type : int
 {
     NONE,
@@ -14,7 +17,7 @@ enum class variable_type : int
     STRING,
     LIST,
     TABLE,
-    FUNCTION,
+    FUNCTION, // Encompasses both native and user-defined functions
 };
 
 class expression;
@@ -31,6 +34,10 @@ struct variable_equal
     bool operator()(const variable &lhs, const variable &rhs) const;
 };
 
+/**
+ * Base class for a dynamically allocated block of memory to store a complex variable type
+ * (string, list, table or function). This is used to manage memory for these types of variables.
+ */
 class variable_block
 {
 public:
@@ -45,9 +52,9 @@ class function;
 
 /**
  * Represents a variable in the Lentus language.
- * Copying a variable (by constructor or operator=) creates a shallow copy of the variable.
- * This means that for the string, list and table types, the pointer to the underlying data structure is copied, but the data structure itself is not copied.
- * The variable class also doesn't perform memory management for the pointers.
+ * This class does not perform memory management for complex types.
+ * If copied using operator=, shallow copies are made for performance.
+ * Memory management is handled by the program_class.
  */
 class variable
 {
@@ -55,8 +62,10 @@ private:
     variable_type type;
     union
     {
+        // Simple data
         bool boolean;
         double number;
+        // Complex data
         lentus_string *string;
         lentus_list *list;
         lentus_table *table;
@@ -73,18 +82,57 @@ public:
     variable(double value) : type(variable_type::NUMBER), number(value) {}
     variable(int value) : type(variable_type::NUMBER), number(value) {}
 
+    /**
+     * Creates a string variable that holds a pointer to the given lentus_string. 
+     * No memory management is performed.
+     */
     variable(lentus_string *value) : type(variable_type::STRING), string(value) {}
 
+    /**
+     * Creates a list variable that holds a pointer to the given lentus_list.
+     * No memory management is performed.
+     */
     variable(lentus_list *value) : type(variable_type::LIST), list(value) {}
 
+    /**
+     * Creates a table variable that holds a pointer to the given lentus_table.
+     * No memory management is performed.
+     */
     variable(lentus_table *value) : type(variable_type::TABLE), table(value) {}
 
+    /**
+     * Creates a function variable that holds a pointer to the given function.
+     * No memory management is performed.
+     */
     variable(function *value) : type(variable_type::FUNCTION), fn(value) {}
 
+    /**
+     * Shallow copy constructor for the variable class. 
+     * Complex types are not deep copied.
+     * @param var The variable to copy
+     */
     variable(const variable &var);
+
+    /**
+     * Move constructor for the variable class.
+     * @param var The variable to move
+     */
     variable(variable &&var);
 
+    /**
+     * Performs a shallow copy of the variable.
+     * No deallocations are performed for overwriting complex types.
+     * @param var The variable to copy
+     * @return A reference to this variable after assignment
+     */
     variable &operator=(const variable &var);
+
+    /**
+     * Performs a shallow move of the variable.
+     * No deallocations are performed for overwriting complex types.
+     * @param var The variable to move
+     * @return A reference to this variable after assignment
+     */
     variable &operator=(variable &&var);
 
     variable_type get_type() const { return type; }
@@ -95,6 +143,9 @@ public:
     std::string to_string_recursive() const;
     std::string to_string() const;
 
+    /**
+     * Destructor does not perform any deallocations.
+     */
     ~variable();
 
     bool operator==(const variable &var) const;
@@ -120,6 +171,9 @@ public:
     const function *get_function() const;
 };
 
+/**
+ * Represents a table (map, associative array, dictionary) variable in the Lentus language.
+ */
 class lentus_table : public variable_block
 {
 private:
@@ -209,7 +263,10 @@ public:
     std::string to_string() const override { return "<table @" + std::to_string((size_t)this) + ">"; }
 };
 
-
+/**
+ * Represents a list (array) variable in the Lentus language.
+ * Internally uses a vector to store elements.
+ */
 class lentus_list : public variable_block
 {
 private:
@@ -255,6 +312,9 @@ public:
     std::string to_string() const override { return "<list @" + std::to_string((size_t)this) + ">"; }
 };
 
+/**
+ * Represents a string variable in the Lentus language.
+ */
 class lentus_string : public variable_block
 {
 private:
@@ -280,13 +340,13 @@ public:
     std::string to_string() const override { return value; }
 };
 
-
 /**
  * A reference to a variable.
  * If the reference is a modifiable reference, the reference holds a pointer to the variable
  * If the reference is a direct reference, the reference holds the variable directly to avoid heap allocation
  *
  * Modifiable references to an list or table should not be held after the list or table could potentially be reallocated.
+ * This class does not perform any checks or memory management.
  */
 class reference
 {

@@ -40,6 +40,7 @@ add_executable(lentus
 # Test executable
 add_executable(tests 
   tests/lexer-tests.cpp 
+  tests/memory-tests.cpp 
   ${LENTUS_SOURCES}
 )
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

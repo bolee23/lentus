@@ -11,10 +11,17 @@
 
 class lentus_function;
 
+/**
+ * Base class for all expression AST nodes in the Lentus language.
+ * Purely to differentiate expressions from statements to avoid bugs
+ */
 class expression : public ast_node
 {
 };
 
+/**
+ * Whenever a parse error is encountered, this expression is used.
+ */
 class error_expression : public expression
 {
 public:
@@ -102,6 +109,9 @@ public:
     ~binary_expression() override;
 };
 
+/**
+ * Represents an indexing operation, e.g. a[b]
+ */
 class subscript_expression : public expression
 {
 private:
@@ -132,6 +142,9 @@ public:
     ~subscript_expression() override;
 };
 
+/**
+ * Represents a literal value as a variable
+ */
 class literal_expression : public expression
 {
 private:
@@ -176,6 +189,9 @@ public:
     ~literal_expression() override;
 };
 
+/**
+ * Expression in parentheses
+ */
 class grouping_expression : public expression
 {
 private:
@@ -204,6 +220,10 @@ public:
     ~grouping_expression() override;
 };
 
+/**
+ * Expression containing a name for a variable.
+ * Evaluating this expression returns a modifiable reference to the associated variable.
+ */
 class identifier_expression : public expression
 {
 private:
@@ -237,6 +257,9 @@ public:
     ~identifier_expression() override = default;
 };
 
+/**
+ * Represents a function call
+ */
 class call_expression : public expression
 {
 private:
@@ -265,6 +288,12 @@ public:
     ~call_expression() override;
 };
 
+/**
+ * Represents a function literal.
+ * For now, Lentus does not support anonymous functions, so this expression 
+ * is only found alongside a variable declaration statement.
+ * Evaluates to a function value.
+ */
 class function_expression : public expression
 {
 private:
@@ -286,6 +315,9 @@ public:
     function_expression(function_expression &&other);
     function_expression &operator=(function_expression &&other);
 
+    /**
+     * Evaluating a function expression returns a function value that captures the variables in the current scope.
+     */
     reference evaluate(execution_context &execution) const override;
     const lentus_string *get_name() const { return name; }
     const statement *get_body() const { return body; }

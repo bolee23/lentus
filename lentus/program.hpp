@@ -9,6 +9,10 @@
 #include "variable.hpp"
 #include "program-module.hpp"
 
+/**
+ * Represents a single Lentus program, which contains zero or more modules.
+ * Stores pointers to variable_blocks for memory management.
+ */
 class program
 {
 private:
@@ -128,6 +132,9 @@ public:
 
 // The following exceptions are used for handling control flow. They are not "errors" but expected exceptions to be caught during execution.
 
+/**
+ * Thrown when executing a break statement.
+ */
 class break_signal : public std::exception
 {
 public:
@@ -135,6 +142,9 @@ public:
     const char *what() const noexcept { return "Break statement"; }
 };
 
+/**
+ * Thrown when executing a continue statement.
+ */
 class continue_signal : public std::exception
 {
 public:
@@ -142,6 +152,11 @@ public:
     const char *what() const noexcept { return "Continue statement"; }
 };
 
+/**
+ * Thrown when executing a return statement. 
+ * Contains the return value.
+ * If no value is returned, the return value is a variable of type NONE.
+ */
 class return_signal : public std::exception
 {
 private:

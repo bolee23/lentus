@@ -5,6 +5,9 @@
 #include "execution.hpp"
 #include <optional>
 
+/**
+ * Base class for all functions in the Lentus language, including native functions and user-defined functions.
+ */
 class function : public variable_block
 {
 public:
@@ -139,6 +142,10 @@ public:
     std::string to_string() const override { return "<function to_uppercase>"; }
 };
 
+/**
+ * Represents a user-defined function closure in the Lentus language.
+ * Contains the function's body as well as capturing the variables in the scope where the function was defined.
+ */
 class lentus_function : public function
 {
     // Known during parsing

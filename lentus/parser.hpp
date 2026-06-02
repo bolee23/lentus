@@ -13,15 +13,20 @@ struct parse_result
     bool error;
 };
 
+/**
+ * Internal data for the parser
+ */
 struct parser_data
 {
+    // Data
     const std::vector<token> &tokens;
     const std::string &source_string;
     const std::vector<source_line> &lines;
-    std::vector<variable_block *> &constant_blocks;
+
+    // State
+    std::vector<variable_block *> &constant_blocks; /* Reference to a vector to add constant variable blocks to */
     std::ostream &error_stream;
     bool error_found = false;
-
     int position = 0; /** Current position in the tokens vector */
 };
 

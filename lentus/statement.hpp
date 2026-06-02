@@ -5,10 +5,17 @@
 #include "variable.hpp"
 #include "expression.hpp"
 
+/**
+ * Base class for all statement AST nodes in the Lentus language.
+ * Purely to differentiate statements from expressions to avoid bugs
+ */
 class statement : public ast_node
 {
 };
 
+/**
+ * Whenever a statement fails to parse, this statement is used.
+ */
 class error_statement : public statement
 {
 public:
@@ -24,10 +31,13 @@ public:
     error_statement &operator=(const error_statement &other) = delete;
 
     reference evaluate(execution_context &execution) const override;
-    std::string to_string() const override { return "<error>\n"; }
+    std::string to_string() const override { return "-- ERROR --\n"; }
     ~error_statement() override = default;
 };
 
+/**
+ * Declaration statement
+ */
 class declaration_statement : public statement
 {
 private:
@@ -58,7 +68,7 @@ public:
 };
 
 /**
- * Statement with one expression
+ * Statement that is purely an expression.
  */
 class expression_statement : public statement
 {
@@ -87,6 +97,9 @@ public:
     ~expression_statement() override;
 };
 
+/**
+ * If statement, with optional else branch
+ */
 class if_statement : public statement
 {
 private:
@@ -119,12 +132,18 @@ public:
     statement *get_then_branch() const { return then_branch; }
     statement *get_else_branch() const { return else_branch; }
 
+    /**
+     * @return value of branch that was executed
+     */
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
     ~if_statement() override;
 };
 
+/**
+ * C style for statement
+ */
 class for_statement : public statement
 {
 private:
@@ -152,18 +171,24 @@ public:
     expression *get_post_iteration() const { return post_iteration; }
     statement *get_body() const { return body; }
 
+    /**
+     * @return value of last iteration of the loop.
+     */
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
     ~for_statement() override;
 };
 
+/**
+ * While or do while loop statement
+ */
 class loop_statement : public statement
 {
 private:
     expression *condition;
     statement *body;
-    bool is_do_loop;
+    bool is_do_loop; /** False for while loop, true for do-while loop */
 
 public:
     loop_statement(expression *condition, statement *body, bool is_do_loop, int line_number, int start_position, int end_position) : condition(condition), body(body), is_do_loop(is_do_loop)
@@ -183,12 +208,20 @@ public:
     statement *get_body() const { return body; }
     bool get_is_do_loop() const { return is_do_loop; }
 
+    /**
+     * @return value of last iteration of the loop.
+     */
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
     ~loop_statement() override;
 };
 
+/**
+ * Statement consisting of zero or more sub statements.
+ * Usually, this is used whenever curly braces are present.
+ * When executed, this also pushes a new stack frame.
+ */
 class sequence_statement : public statement
 {
 private:
@@ -207,6 +240,7 @@ public:
     const std::vector<statement *> &get_statements() const { return statements; }
 
     /**
+     * Pushes a new stack frame, executes all statements in order, and pops the stack frame.
      * @return The value of the last statement in the sequence, or None if the sequence is empty
      */
     reference evaluate(execution_context &execution) const override;
@@ -215,10 +249,19 @@ public:
     ~sequence_statement() override;
 };
 
+/**
+ * Statement which does nothing
+ */
 class empty_statement : public statement
 {
 public:
-    empty_statement() {}
+    empty_statement()
+    {
+        // This will never throw an error so the positions do not need to be tracked.
+        this->line_number = 0;
+        this->start_position = 0;
+        this->end_position = 0;
+    }
 
     empty_statement(const empty_statement &other) = delete;
     empty_statement &operator=(const empty_statement &other) = delete;
@@ -256,6 +299,9 @@ public:
 
     expression *get_value() const { return value; }
 
+    /**
+     * @throw Always throws a return_signal with the return value
+     */
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
@@ -278,6 +324,9 @@ public:
     break_statement(break_statement &&other) = default;
     break_statement &operator=(break_statement &&other) = default;
 
+    /**
+     * @throw Always throws a break_signal
+     */
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 
@@ -300,6 +349,9 @@ public:
     continue_statement(continue_statement &&other) = default;
     continue_statement &operator=(continue_statement &&other) = default;
 
+    /**
+     * @throw Always throws a continue_signal
+     */
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
 

@@ -4,14 +4,21 @@
 #include <string>
 #include <optional>
 
+/**
+ * Type of token
+ */
 enum class token_type : int
 {
     NONE, /** none */
+
     // Data tokens
     IDENTIFIER,
     STRING,
     NUMBER,
 
+    // Non-data tokens
+
+    // Operators
     END_STATEMENT, /** ; */
     ADD,           /** \+ */
     SUBTRACT,      /** \- */
@@ -76,9 +83,9 @@ private:
 
     union
     {
-        std::string *identifier_name;
-        std::string *string_constant;
-        double number_constant;
+        std::string *identifier_name; /** for IDENTIFIER tokens */
+        std::string *string_constant; /** for STRING tokens */
+        double number_constant;       /** for NUMBER tokens */
     };
 
 public:
@@ -100,10 +107,14 @@ public:
     static token string_constant_token(std::string *string_constant, int line_number, int start_position, int end_position);
     static token number_constant_token(double number_constant, int line_number, int start_position, int end_position);
 
-    /** Convert the token to a enum name representation */
+    /** Convert the token to a enum name representation for debugging */
     std::string to_string() const;
 
-    /** Get the substring associated with the token */
+    /**
+     * Uses the position data of this token to extract a substring from the source string
+     * @param source The source string
+     * @return The substring corresponding to the token's position
+     */
     std::string to_string(const std::string &source) const;
 
     /**

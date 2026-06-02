@@ -6,13 +6,20 @@
 
 class lentus_function;
 
+/**
+ * A single level of variable scope in the call stack.
+ */
 struct stack_frame
 {
     program_module *current_module;
-    lentus_function *current_function; // Optional to indicate this frame is in a function call (nullptr if not in a function)
+    lentus_function *current_function; /** nullptr if not in a function */
     lentus_table *local_variables;
 };
 
+/**
+ * The execution context of the Lentus interpreter.
+ * Stores execution state related data such as call stack.
+ */
 class execution_context
 {
 private:
@@ -20,9 +27,24 @@ private:
     program *prgm;
 
 public:
+    /**
+     * Constructor for the execution context.
+     * @param prgm the program to execute
+     */
     execution_context(program *prgm) : stack(), prgm(prgm) {}
 
-    std::optional<reference> execute_function(variable *function, std::vector<variable *> &arguments);
+    /**
+     * From C++ code, execute a function with the given arguments
+     * @param fn the function to execute
+     * @param arguments the arguments to execute the function with
+     * @return the result of the function execution, or nullopt if the function threw an exception
+     */
+    std::optional<reference> execute_function(function *fn, std::vector<variable *> &arguments); // TODO
+
+    /**
+     * From C++ code, execute a module with the given file path. 
+     * @param module This must have already been parsed and added to the program
+     */
     std::optional<reference> execute_module(program_module *module);
 
     program &get_program() { return *prgm; }
