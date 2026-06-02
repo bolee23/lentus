@@ -1,6 +1,0 @@
-var condition = true;
-
-if(condition) var number = 1;
-
-print("number = ", number);
-

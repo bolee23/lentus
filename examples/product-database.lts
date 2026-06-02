@@ -10,7 +10,7 @@ func read_integer_range(prompt, min, max) {
             print_line("Not an integer");
             continue;
         }
-        if not (to_number(input_str) >= min) and not (to_number(input_str) <= max) {
+        if not (to_number(input_str) >= min) or not (to_number(input_str) <= max) {
             print_line("Integer out of range");
             continue;
         }
