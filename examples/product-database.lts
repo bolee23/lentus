@@ -1,5 +1,13 @@
+/*
+    This implementation of Product Database demonstrates all the features
+    of the Lentus programming language:
+    * Lists
+    * 
+*/
+
 var NO_PRODUCT_FOUND = -1;
 
+// Utility functions
 func read_integer_range(prompt, min, max) {
     var input_str;
     

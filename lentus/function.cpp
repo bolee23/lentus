@@ -319,7 +319,7 @@ variable contains_function::evaluate([[maybe_unused]] execution_context &executi
         throw lentus_runtime_exception("Second argument to contains must be a string", executor);
     }
 
-    return parameters[0].get_string()->get_value().contains(parameters[0].get_string()->get_value());
+    return parameters[0].get_string()->get_value().contains(parameters[1].get_string()->get_value());
 }
 
 variable to_lowercase_function::evaluate(execution_context &execution, std::vector<variable> &parameters, const ast_node *executor)
