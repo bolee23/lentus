@@ -41,10 +41,6 @@ variable number_cast_function::evaluate([[maybe_unused]] execution_context &exec
     {
         return parameters[0];
     }
-    else if (parameters[0].is(variable_type::BOOLEAN))
-    {
-        return variable(parameters[0].get_boolean() ? 1 : 0);
-    }
     else if (parameters[0].is(variable_type::STRING))
     {
         const std::string &str = parameters[0].get_string()->get_value();
@@ -220,15 +216,16 @@ variable rand_int_function::evaluate([[maybe_unused]] execution_context &executi
         throw lentus_runtime_exception("Arguments to random function must be within 64-bit integer range", executor);
     }
 
-    long long min = parameters[0].get_number();
-    long long max = parameters[1].get_number();
+    double min = parameters[0].get_number();
+    double max = parameters[1].get_number();
 
-    if (min > max)
+    if (std::ceil(min) > std::floor(max))
     {
         throw lentus_runtime_exception("First argument to random function must be less than or equal to second argument", executor);
     }
+    
 
-    std::uniform_int_distribution<> dis(min, max);
+    std::uniform_int_distribution<> dis(std::ceil(min), std::floor(max));
     long long result = dis(gen);
     return variable((double)result);
 }
@@ -299,6 +296,9 @@ variable list_remove_function::evaluate([[maybe_unused]] execution_context &exec
         throw lentus_runtime_exception("Second argument to list_remove must be a number", executor);
     }
     size_t index = parameters[1].get_number();
+    if((double)index != parameters[1].get_number()) {
+        throw lentus_runtime_exception("Second argument to list_remove must be an integer", executor);
+    }
     if ((size_t)index >= parameters[0].get_list()->size()) // unsigned so don't need to check < 0
     {
         throw lentus_runtime_exception("Index out of bounds for list_remove", executor);

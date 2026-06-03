@@ -1,5 +1,5 @@
-
-var tbl = table (
+// Constructing table with initial values
+var tbl = table(
     "zero", 0,
     "one", 1,
     "two", 2,
@@ -8,9 +8,10 @@ var tbl = table (
     "five", 5,
 );
 
+// Accessing using []
 print_line("Five: ", tbl["five"]);
 print_line("One: ", tbl["one"]);
-
+// Assignment
 tbl["six"] = 6;
 tbl["eight"] = 6;
 
@@ -27,17 +28,6 @@ tbl_2["nine"] = 9;
 
 print_line("Nine: ", tbl["nine"]);
 
-// Can insert the none type, booleans and numbers into the same table.
-tbl[none] = "None";
-tbl[true] = "True";
-tbl[5] = "Five";
-
-print_line("None: ", tbl[none]);
-print_line("True: ", tbl[true]);
-print_line("5: ", tbl[5]);
-
-// No entry -> gives none
-print_line("Ten: ", tbl[10]);
 
 
 

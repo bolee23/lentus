@@ -1,0 +1,21 @@
+
+// Variables must be declared with the var keyword
+var x = 2;
+x = 4; // Can be assigned to
+// Can be incremented
+x++;
+// Can be +-*/ assigned
+x *= 2;
+
+var y = 2;
+// Can be combined in +-*/ operations
+var z = x + y;
+
+var first_bool = false;
+var second_bool = true;
+
+// can use "or"/"and" or "||"/"&&" (equivalent)
+var third_bool = first_bool or second_bool;
+var third_bool_equiv = first_bool || second_bool;
+
+// Note that the |= and &= assignment operators are not implemented yet in this version of Lentus.

@@ -1,25 +1,14 @@
 var hi = true;
 
+// Conditions do not require () around them
 if hi {
-    print("1. hi is true");
+    print_line("1. hi is true");
 } else {
-    print("1. hi is false");
+    print_line("1. hi is false");
 }
 
-if hi print("2. hi is true");
-if not hi print("2. hi is false");
+// For one statement is used the {} aren't required either.
+if hi print_line("2. hi is true");
+if not hi print_line("2. hi is false");
 
-if hi print("3. hi is true"); else print("3. hi is false");
-
-if hi print("4. hi is true"); else {
-    print("4. hi is false");
-}
-
-if hi {
-    print("5. hi is true");
-} else print("5. hi is false");
-
-// nested if statements without {}
-if hi if hi if hi print("6. hi is true three times");
-
-
+if hi print_line("3. hi is true"); else print_line("3. hi is false");

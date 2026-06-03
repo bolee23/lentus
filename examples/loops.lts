@@ -1,36 +1,34 @@
-print("Counting to five!");
+print_line("Counting to five!");
+// Unlike all other conditions, the () brackets are required in the for loop.
 for(var i = 1; i <= 5; i += 1) {
-    print(i);
+    print_line(i);
 }
 
-print("Counting to five without braces!");
+print_line("Counting to five without braces!");
+for(var i = 1; i <= 5; i += 1) print_line(i);
 
-for(var i = 1; i <= 5; i += 1) print(i);
-
-
-print("Counting to five without initializer!");
-var i = 1;
-for(; i <= 5; i += 1) print(i);
-
-print("Counting to five without post increment!");
-for(var i = 1; i <= 5;) {
-    print(i);
-    i += 1;
-}
-
-print("Counting to five using while loop!");
+print_line("Counting to five using while loop!");
 var j = 1;
 while j <= 5 {
-    print(j);
+    print_line(j);
     j += 1;
 }
 
-print("Counting to five using do loop!");
+print_line("Counting to five using do loop!");
 j = 1;
 do {
-    print(j);
+    print_line(j);
     j += 1;
 } while j <= 5;
 
-for(var k = 0; k < 5000000; k += 1) {
+
+print_line("Counting to five without initializer!");
+var i = 1;
+for(; i <= 5; i += 1) print_line(i);
+
+print_line("Counting to five without post increment!");
+for(var i = 1; i <= 5;) {
+    print_line(i);
+    i += 1;
 }
+
