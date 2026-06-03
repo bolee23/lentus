@@ -17,6 +17,12 @@ FetchContent_Declare(
   GIT_TAG        v3.4.0
 )
 FetchContent_MakeAvailable(Catch2)
+FetchContent_Declare(
+  MagicEnum
+  GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+  GIT_TAG        v0.9.8
+)
+FetchContent_MakeAvailable(MagicEnum)
 
 set(LENTUS_SOURCES
   lentus/lexer.cpp
@@ -36,6 +42,7 @@ add_executable(lentus
   lentus-cli.cpp
   ${LENTUS_SOURCES}
 )
+target_link_libraries(lentus PRIVATE magic_enum::magic_enum)
 
 # Test executable
 add_executable(tests 
@@ -44,6 +51,7 @@ add_executable(tests
   ${LENTUS_SOURCES}
 )
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE magic_enum::magic_enum)
 
 # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -53,13 +61,6 @@ endif()
 # Compiler flags for different build types
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-
-# Optionally, you can add more configurations
-# For example, RelWithDebInfo
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
-
-# Include directories if needed
-target_include_directories(lentus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Register tests
 add_test(NAME lentus_tests COMMAND tests)

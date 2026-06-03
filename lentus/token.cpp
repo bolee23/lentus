@@ -1,6 +1,6 @@
 #include "token.hpp"
 #include <string>
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 #include <format>
 
 token::token(const token &tok)

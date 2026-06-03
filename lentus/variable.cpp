@@ -1,5 +1,5 @@
 #include "variable.hpp"
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 #include <cmath>
 #include <format>
 #include <iostream>
