@@ -5,7 +5,6 @@
 /**
  * LENTUS PARSER
  * This parser uses a recursive descent parsing approach.
- *
  */
 
 // Helper functions for parsing

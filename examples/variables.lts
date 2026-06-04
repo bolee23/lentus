@@ -2,6 +2,7 @@
 // Variables must be declared with the var keyword
 var x = 2;
 x = 4; // Can be assigned to
+print_line(x);
 // Can be incremented
 x++;
 // Can be +-*/ assigned
@@ -19,3 +20,10 @@ var third_bool = first_bool or second_bool;
 var third_bool_equiv = first_bool || second_bool;
 
 // Note that the |= and &= assignment operators are not implemented yet in this version of Lentus.
+
+func three() {
+    return 3;
+}
+
+print_line(three()); // Ok
+three() = 4; // Error
