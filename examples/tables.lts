@@ -8,16 +8,12 @@ var tbl = table(
     "five", 5,
 );
 
-// Accessing using []
+// Accessing using [] or .
 print_line("Five: ", tbl["five"]);
-print_line("One: ", tbl["one"]);
+print_line("One: ", tbl.one);
 // Assignment
 tbl["six"] = 6;
-tbl["eight"] = 6;
-
-// Can access string entries with "[]" or "."
-tbl["eight"]++;
-tbl.eight++;
+tbl.eight = 8;
 
 print_line("Six: ", tbl["six"]);
 print_line("Eight: ", tbl.eight);
