@@ -412,7 +412,7 @@ parse_result<expression> parse_negation_and_prefix(parser_data &data)
  */
 parse_result<expression> parse_factor(parser_data &data)
 {
-    // factor -> negations (('*' | '/') negations)...?
+    // factor -> negation_and_prefix (('*' | '/') negation_and_prefix)...?
     return parse_left_associative(data, parse_negation_and_prefix, {token_type::MULTIPLY, token_type::DIVIDE});
 }
 
