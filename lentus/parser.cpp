@@ -393,52 +393,42 @@ parse_result<expression> parse_postfix_access(parser_data &data)
 }
 
 /**
- * Parses prefix increment/decrement (++x, --x), which are right associative.
+ * Parses right associative unary operators (!x, --x and ++x)
  * @param data Parser data
  * @return Expression parsed up to this level of precedence, and error status.
  */
-parse_result<expression> parse_prefix(parser_data &data)
+parse_result<expression> parse_right_unary(parser_data &data)
 {
-    // prefix -> ('++' | '--')* postfix_access
-    // Increment and decrement are right associative
-    if (match_and_consume(data, token_type::INCREMENT)) // Prefix increment
+    // negations -> ('!' | '-') (negations | prefix)
+    if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_prefix(data);
+        parse_result<expression> operand_result = parse_right_unary(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
     }
+
+    // Increment and decrement are right associative
+    if (match_and_consume(data, token_type::INCREMENT)) // Prefix increment
+    {
+        token op = data.tokens[data.position - 1];
+        parse_result<expression> operand_result = parse_right_unary(data);
+        expression *right = operand_result.ast;
+
+        return {new unary_expression(op, right), operand_result.error};
+    }
+
     else if (match_and_consume(data, token_type::DECREMENT)) // Prefix decrement
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_prefix(data);
+        parse_result<expression> operand_result = parse_right_unary(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
     }
 
     return parse_postfix_access(data);
-}
-
-/**
- * Parses logical NOT and negation, which are right associative.
- * @param data Parser data
- * @return Expression parsed up to this level of precedence, and error status.
- */
-parse_result<expression> parse_negations(parser_data &data)
-{
-    // negations -> ('!' | '-') (negations | prefix)
-    if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
-    {
-        token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_negations(data);
-        expression *right = operand_result.ast;
-
-        return {new unary_expression(op, right), operand_result.error};
-    }
-
-    return parse_prefix(data);
 }
 
 /**
@@ -449,7 +439,7 @@ parse_result<expression> parse_negations(parser_data &data)
 parse_result<expression> parse_factor(parser_data &data)
 {
     // factor -> negations (('*' | '/') negations)...?
-    return parse_left_associative(data, parse_negations, {token_type::MULTIPLY, token_type::DIVIDE});
+    return parse_left_associative(data, parse_right_unary, {token_type::MULTIPLY, token_type::DIVIDE});
 }
 
 /**
