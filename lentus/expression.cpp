@@ -26,7 +26,12 @@ unary_expression &unary_expression::operator=(unary_expression &&other)
 
 std::string unary_expression::to_string() const
 {
-    return this->op.to_string() + "(" + this->operand->to_string() + ")";
+    if(is_postfix)
+    {
+        return "POST_" + this->op.to_string() + "(" + this->operand->to_string() + ")";
+    } else {
+        return this->op.to_string() + "(" + this->operand->to_string() + ")";
+    }
 }
 
 unary_expression::~unary_expression()
@@ -239,7 +244,7 @@ call_expression &call_expression::operator=(call_expression &&other)
 
 std::string call_expression::to_string() const
 {
-    std::string str = "CALL[" + callee->to_string() + ", (";
+    std::string str = "CALL[" + callee->to_string() + "(";
     for (int i = 0; i < (int)arguments.size(); i++)
     {
         if (i != 0)
@@ -267,7 +272,14 @@ std::string function_expression::to_string() const
     std::string str = "FUNCTION[";
     if (name != nullptr)
     {
-        str += name->get_value();
+        for (size_t i = 0; i < parameter_names.size(); ++i)
+        {
+            if (i != 0)
+            {
+                str += ", ";
+            }
+            str += parameter_names[i]->get_value();
+        }
     }
     else
     {
