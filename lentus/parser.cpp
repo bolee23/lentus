@@ -230,14 +230,14 @@ parse_result<expression> parse_primary(parser_data &data)
 }
 
 /**
- * Parses function calls of the form expr(expr, expr, ...)
+ * Parses function calls of the form (expr, expr, ...)
  * @param data Parser data
  * @param expr Expression being called
  * @return Expression with function call applied, and error status.
  */
-parse_result<expression> parse_call(parser_data &data, expression *expr)
+parse_result<expression> parse_call_args(parser_data &data, expression *expr)
 {
-    // call -> expr '(' (expression (',' expression)* ','?)? ')'
+    // call_args -> '(' (expression (',' expression)* ','?)? ')'
     bool error = false;
     std::vector<expression *> arguments;
 
@@ -270,14 +270,14 @@ parse_result<expression> parse_call(parser_data &data, expression *expr)
 }
 
 /**
- * Parses subscripts of the form expr[expr]
+ * Parses subscript arguments of the form [expr]
  * @param data Parser data
  * @param expr Expression before the subscript
  * @return Expression with subscript applied, and error status.
  */
-parse_result<expression> parse_subscript(parser_data &data, expression *expr)
+parse_result<expression> parse_subscript_args(parser_data &data, expression *expr)
 {
-    // subscript -> expr '[' expression ']'
+    // subscript_args -> '[' expression ']'
     parse_result<expression> index_result = parse_expression(data);
     bool error = index_result.error;
     expression *index = index_result.ast;
@@ -339,15 +339,15 @@ parse_result<expression> parse_access_and_postfix(parser_data &data)
             token op = data.tokens[data.position - 1];
             expr = new unary_expression(op, expr, true);
         }
-        if (match_and_consume(data, token_type::LEFT_BRACKET))
+        else if (match_and_consume(data, token_type::LEFT_BRACKET))
         {
-            parse_result<expression> call_result = parse_call(data, expr);
+            parse_result<expression> call_result = parse_call_args(data, expr);
             error |= call_result.error;
             expr = call_result.ast;
         }
         else if (match_and_consume(data, token_type::LEFT_INDEX))
         {
-            parse_result<expression> subscript_result = parse_subscript(data, expr);
+            parse_result<expression> subscript_result = parse_subscript_args(data, expr);
             error |= subscript_result.error;
             expr = subscript_result.ast;
         }
@@ -373,7 +373,7 @@ parse_result<expression> parse_access_and_postfix(parser_data &data)
  */
 parse_result<expression> parse_negation_and_prefix(parser_data &data)
 {
-    // negation_and_prefix -> ('!' | '-' | '++' | '--') (negations | prefix)
+    // negation_and_prefix -> access_and_postfix | (('!' | '-' | '++' | '--') negation_and_prefix);
     if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
     {
         token op = data.tokens[data.position - 1];
@@ -393,7 +393,7 @@ parse_result<expression> parse_negation_and_prefix(parser_data &data)
         return {new unary_expression(op, right), operand_result.error};
     }
 
-    else if (match_and_consume(data, token_type::DECREMENT)) // Prefix decrement
+    if (match_and_consume(data, token_type::DECREMENT)) // Prefix decrement
     {
         token op = data.tokens[data.position - 1];
         parse_result<expression> operand_result = parse_negation_and_prefix(data);
