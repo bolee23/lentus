@@ -26,10 +26,12 @@ unary_expression &unary_expression::operator=(unary_expression &&other)
 
 std::string unary_expression::to_string() const
 {
-    if(is_postfix)
+    if (is_postfix)
     {
         return "POST_" + this->op.to_string() + "(" + this->operand->to_string() + ")";
-    } else {
+    }
+    else
+    {
         return this->op.to_string() + "(" + this->operand->to_string() + ")";
     }
 }
@@ -327,32 +329,46 @@ reference unary_expression::evaluate(execution_context &execution) const
         {
             throw lentus_runtime_exception(std::string("Invalid type in increment: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
         }
-        if (is_postfix) // var++;
+        else if (rhs.is_modifiable_reference())
         {
-            reference original = rhs;
-            *rhs = variable(rhs->get_number() + 1);
-            return original;
+            if (is_postfix) // var++;
+            {
+                reference original = rhs;
+                *rhs = variable(rhs->get_number() + 1);
+                return reference(*original); // Convert to rvalue
+            }
+            else // ++var;
+            {
+                *rhs = variable(rhs->get_number() + 1);
+                return rhs;
+            }
         }
-        else // ++var;
+        else
         {
-            *rhs = variable(rhs->get_number() + 1);
-            return rhs;
+            throw lentus_runtime_exception("Cannot apply increment operator to unmodifiable value", this);
         }
     case token_type::DECREMENT:
         if (!rhs->is(variable_type::NUMBER))
         {
             throw lentus_runtime_exception(std::string("Invalid type in decrement: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
         }
-        if (is_postfix) // var--;
+        else if (rhs.is_modifiable_reference())
         {
-            reference original = rhs;
-            *rhs = variable(rhs->get_number() - 1);
-            return original;
+            if (is_postfix) // var--;
+            {
+                reference original = rhs;
+                *rhs = variable(rhs->get_number() - 1);
+                return reference(*original); // Convert to rvalue
+            }
+            else // --var;
+            {
+                *rhs = variable(rhs->get_number() - 1);
+                return rhs;
+            }
         }
-        else // --var;
+        else
         {
-            *rhs = variable(rhs->get_number() - 1);
-            return rhs;
+            throw lentus_runtime_exception("Cannot apply decrement operator to unmodifiable value", this);
         }
     default:
         throw lentus_runtime_exception("Invalid unary operator token " + op.to_string(), this);
