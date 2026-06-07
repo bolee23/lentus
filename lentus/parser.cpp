@@ -320,17 +320,25 @@ parse_result<expression> parse_member_access(parser_data &data, expression *expr
 }
 
 /**
- * Parses zero or more instances of function calls, subscripts, and member access (dot operator). All left associative.
+ * Parses postfix increment/decrement (var++ and var--), and accesses (function calls, subscripts, member access).
+ * All left associative.
  * @param data Parser data
- * @param expr Expression to apply accesses to.
- * @return Expression with accesses applied, and error status.
+ * @return Expression parsed up to this level of precedence, and error status.
  */
-parse_result<expression> parse_accesses(parser_data &data, expression *expr)
+parse_result<expression> parse_access_and_postfix(parser_data &data)
 {
-    // accesses -> (call | subscript | member_access)*
-    bool error = false;
+    // postfix_access -> primary ( ('++' | '--' | call | subscript | member_access ) )*
+    parse_result<expression> result = parse_primary(data);
+    expression *expr = result.ast;
+    bool error = result.error;
+
     while (true)
     {
+        if (match_and_consume(data, {token_type::INCREMENT, token_type::DECREMENT}))
+        {
+            token op = data.tokens[data.position - 1];
+            expr = new unary_expression(op, expr, true);
+        }
         if (match_and_consume(data, token_type::LEFT_BRACKET))
         {
             parse_result<expression> call_result = parse_call(data, expr);
@@ -354,40 +362,6 @@ parse_result<expression> parse_accesses(parser_data &data, expression *expr)
             break;
         }
     }
-    return {expr, error};
-}
-
-/**
- * Parses postfix increment/decrement (var++ and var--), and accesses (function calls, subscripts, member access).
- * Also calls parse_access to parse function calls, subscripts and member access after primary expressions.
- * All left associative.
- * @param data Parser data
- * @return Expression parsed up to this level of precedence, and error status.
- */
-parse_result<expression> parse_postfix_access(parser_data &data)
-{
-    // postfix_access -> primary ('++' | '--')* accesses ('++' | '--')*
-    parse_result<expression> result = parse_primary(data);
-    expression *expr = result.ast;
-    bool error = result.error;
-
-    // var++ and var--;
-    while (match_and_consume(data, {token_type::INCREMENT, token_type::DECREMENT}))
-    {
-        token op = data.tokens[data.position - 1];
-        expr = new unary_expression(op, expr, true);
-    }
-
-    parse_result<expression> access_result = parse_accesses(data, expr);
-    expr = access_result.ast;
-    error |= access_result.error;
-
-    // Handle var[i](j)[k]++ and --;
-    while (match_and_consume(data, {token_type::INCREMENT, token_type::DECREMENT}))
-    {
-        token op = data.tokens[data.position - 1];
-        expr = new unary_expression(op, expr, true);
-    }
 
     return {expr, error};
 }
@@ -397,13 +371,13 @@ parse_result<expression> parse_postfix_access(parser_data &data)
  * @param data Parser data
  * @return Expression parsed up to this level of precedence, and error status.
  */
-parse_result<expression> parse_right_unary(parser_data &data)
+parse_result<expression> parse_negation_and_prefix(parser_data &data)
 {
-    // negations -> ('!' | '-' | '++' | '--') (negations | prefix)
+    // negation_and_prefix -> ('!' | '-' | '++' | '--') (negations | prefix)
     if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_right_unary(data);
+        parse_result<expression> operand_result = parse_negation_and_prefix(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
@@ -413,7 +387,7 @@ parse_result<expression> parse_right_unary(parser_data &data)
     if (match_and_consume(data, token_type::INCREMENT)) // Prefix increment
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_right_unary(data);
+        parse_result<expression> operand_result = parse_negation_and_prefix(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
@@ -422,13 +396,13 @@ parse_result<expression> parse_right_unary(parser_data &data)
     else if (match_and_consume(data, token_type::DECREMENT)) // Prefix decrement
     {
         token op = data.tokens[data.position - 1];
-        parse_result<expression> operand_result = parse_right_unary(data);
+        parse_result<expression> operand_result = parse_negation_and_prefix(data);
         expression *right = operand_result.ast;
 
         return {new unary_expression(op, right), operand_result.error};
     }
 
-    return parse_postfix_access(data);
+    return parse_access_and_postfix(data);
 }
 
 /**
@@ -439,7 +413,7 @@ parse_result<expression> parse_right_unary(parser_data &data)
 parse_result<expression> parse_factor(parser_data &data)
 {
     // factor -> negations (('*' | '/') negations)...?
-    return parse_left_associative(data, parse_right_unary, {token_type::MULTIPLY, token_type::DIVIDE});
+    return parse_left_associative(data, parse_negation_and_prefix, {token_type::MULTIPLY, token_type::DIVIDE});
 }
 
 /**
