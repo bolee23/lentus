@@ -2,7 +2,9 @@
     This implementation of Product Database demonstrates all the features
     of the Lentus programming language:
     * Lists
-    * 
+    * Tables
+    * Loops
+    * Conditionals
 */
 
 var NO_PRODUCT_FOUND = -1;

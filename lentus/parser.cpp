@@ -134,6 +134,7 @@ bool match_and_consume(parser_data &data, token_type type)
 template <typename F>
 parse_result<expression> parse_left_associative(parser_data &data, F function, std::vector<token_type> token_types)
 {
+    // left_associative<F> = F (token_types F)*
     parse_result<expression> result = function(data);
     bool error = result.error;
     expression *left = result.ast;
@@ -154,7 +155,7 @@ parse_result<expression> parse_expression(parser_data &data);
 parse_result<statement> parse_statement(parser_data &data, bool allow_declarations = true);
 parse_result<statement> parse_sequence(parser_data &data);
 
-// Parser
+// PARSER START
 
 /**
  * Parses:
@@ -236,6 +237,7 @@ parse_result<expression> parse_primary(parser_data &data)
  */
 parse_result<expression> parse_call(parser_data &data, expression *expr)
 {
+    // call -> expr '(' (expression (',' expression)* ','?)? ')'
     bool error = false;
     std::vector<expression *> arguments;
 
@@ -275,6 +277,7 @@ parse_result<expression> parse_call(parser_data &data, expression *expr)
  */
 parse_result<expression> parse_subscript(parser_data &data, expression *expr)
 {
+    // subscript -> expr '[' expression ']'
     parse_result<expression> index_result = parse_expression(data);
     bool error = index_result.error;
     expression *index = index_result.ast;
@@ -298,6 +301,7 @@ parse_result<expression> parse_subscript(parser_data &data, expression *expr)
  */
 parse_result<expression> parse_member_access(parser_data &data, expression *expr)
 {
+    // member_access -> expr '.' identifier
     if (!check(data, token_type::IDENTIFIER))
     {
         write_expectation_error_message(data, "identifier after '.'");
@@ -323,7 +327,7 @@ parse_result<expression> parse_member_access(parser_data &data, expression *expr
  */
 parse_result<expression> parse_accesses(parser_data &data, expression *expr)
 {
-    // accesses = (call | subscript | member_access)*
+    // accesses -> (call | subscript | member_access)*
     bool error = false;
     while (true)
     {
@@ -362,7 +366,7 @@ parse_result<expression> parse_accesses(parser_data &data, expression *expr)
  */
 parse_result<expression> parse_postfix_access(parser_data &data)
 {
-    // postfix_access = primary ('++' | '--')* accesses ('++' | '--')*
+    // postfix_access -> primary ('++' | '--')* accesses ('++' | '--')*
     parse_result<expression> result = parse_primary(data);
     expression *expr = result.ast;
     bool error = result.error;
@@ -395,7 +399,7 @@ parse_result<expression> parse_postfix_access(parser_data &data)
  */
 parse_result<expression> parse_prefix(parser_data &data)
 {
-    // prefix = ('++' | '--')...? postfix_access
+    // prefix -> ('++' | '--')* postfix_access
     // Increment and decrement are right associative
     if (match_and_consume(data, token_type::INCREMENT)) // Prefix increment
     {
@@ -424,7 +428,7 @@ parse_result<expression> parse_prefix(parser_data &data)
  */
 parse_result<expression> parse_negations(parser_data &data)
 {
-    // negations = ('!' | '-') (negations | prefix)
+    // negations -> ('!' | '-') (negations | prefix)
     if (match_and_consume(data, {token_type::NOT, token_type::SUBTRACT}))
     {
         token op = data.tokens[data.position - 1];
@@ -444,7 +448,7 @@ parse_result<expression> parse_negations(parser_data &data)
  */
 parse_result<expression> parse_factor(parser_data &data)
 {
-    // factor = negations (('*' | '/') negations)...?
+    // factor -> negations (('*' | '/') negations)...?
     return parse_left_associative(data, parse_negations, {token_type::MULTIPLY, token_type::DIVIDE});
 }
 
@@ -455,7 +459,7 @@ parse_result<expression> parse_factor(parser_data &data)
  */
 parse_result<expression> parse_term(parser_data &data)
 {
-    // term = factor (('+' | '-') factor)...?
+    // term -> factor (('+' | '-') factor)...?
     return parse_left_associative(data, parse_factor, {token_type::ADD, token_type::SUBTRACT});
 }
 
@@ -466,7 +470,7 @@ parse_result<expression> parse_term(parser_data &data)
  */
 parse_result<expression> parse_comparison(parser_data &data)
 {
-    // comparison = term (('>' | '>=' | '<' | '<=') term)...?
+    // comparison -> term (('>' | '>=' | '<' | '<=') term)...?
     return parse_left_associative(data, parse_term, {token_type::GREATER, token_type::GREATER_EQUAL, token_type::LESS, token_type::LESS_EQUAL});
 }
 
@@ -477,7 +481,7 @@ parse_result<expression> parse_comparison(parser_data &data)
  */
 parse_result<expression> parse_equality(parser_data &data)
 {
-    // equality = comparison (('==' | '!=') comparison)...?
+    // equality -> comparison (('==' | '!=') comparison)...?
     return parse_left_associative(data, parse_comparison, {token_type::NOT_EQUAL, token_type::EQUAL});
 }
 
@@ -488,7 +492,7 @@ parse_result<expression> parse_equality(parser_data &data)
  */
 parse_result<expression> parse_logical_and(parser_data &data)
 {
-    // logical_and = equality ('&&' equality)...?
+    // logical_and -> equality ('&&' equality)...?
     return parse_left_associative(data, parse_equality, {token_type::AND});
 }
 
@@ -499,7 +503,7 @@ parse_result<expression> parse_logical_and(parser_data &data)
  */
 parse_result<expression> parse_logical_or(parser_data &data)
 {
-    // logical_or = logical_and ('||' logical_and)...?
+    // logical_or -> logical_and ('||' logical_and)...?
     return parse_left_associative(data, parse_logical_and, {token_type::OR});
 }
 
@@ -510,7 +514,7 @@ parse_result<expression> parse_logical_or(parser_data &data)
  */
 parse_result<expression> parse_direct_assignment(parser_data &data)
 {
-    // direct_assignment = logical_or (= direct_assignment)?
+    // direct_assignment -> logical_or ('=' direct_assignment)?
     parse_result<expression> left_result = parse_logical_or(data);
     expression *left = left_result.ast;
 
@@ -534,7 +538,7 @@ parse_result<expression> parse_direct_assignment(parser_data &data)
  */
 parse_result<expression> parse_compound_assignment(parser_data &data)
 {
-    // compound_assignment = direct_assignment (('+=' | '-=' | '*=' | '/=') compound_assignment)?
+    // compound_assignment -> direct_assignment (('+=' | '-=' | '*=' | '/=') compound_assignment)?
     parse_result<expression> left_result = parse_direct_assignment(data);
     expression *left = left_result.ast;
 
@@ -558,7 +562,7 @@ parse_result<expression> parse_compound_assignment(parser_data &data)
  */
 parse_result<expression> parse_expression(parser_data &data)
 {
-    // expression = compound_assignment
+    // expression -> compound_assignment
     return parse_compound_assignment(data);
 }
 
@@ -569,7 +573,7 @@ parse_result<expression> parse_expression(parser_data &data)
  */
 parse_result<statement> parse_declaration(parser_data &data)
 {
-    // declaration = 'var' identifier ('=' expression)? ';'
+    // declaration -> 'var' identifier ('=' expression)? ';'
     if (match_and_consume(data, token_type::IDENTIFIER))
     {
         const token &identifier_token = data.tokens[data.position - 1];
@@ -640,7 +644,7 @@ parse_result<statement> parse_expression_statement(parser_data &data)
  */
 parse_result<statement> parse_for_statement(parser_data &data)
 {
-    // for_statement = 'for' '(' (statement | ';') expression? ';' expression? ')' statement
+    // for_statement -> 'for' '(' (statement | ';') expression? ';' expression? ')' statement
     if (!match_and_consume(data, token_type::LEFT_BRACKET))
     {
         write_expectation_error_message(data, "'(' after 'for'");
@@ -702,7 +706,7 @@ parse_result<statement> parse_for_statement(parser_data &data)
  */
 parse_result<statement> parse_while_statement(parser_data &data)
 {
-    // while_statement = 'while' expression statement
+    // while_statement -> 'while' expression statement
     parse_result<expression> condition_result = parse_expression(data);
     bool error = condition_result.error;
     int line_number = condition_result.ast->get_line_number();
@@ -722,7 +726,7 @@ parse_result<statement> parse_while_statement(parser_data &data)
  */
 parse_result<statement> parse_do_statement(parser_data &data)
 {
-    // do_statement = 'do' statement 'while' expression ';'
+    // do_statement -> 'do' statement 'while' expression ';'
     parse_result<statement> body_result = parse_statement(data);
     bool error = body_result.error;
     int line_number = body_result.ast->get_line_number();
@@ -754,7 +758,7 @@ parse_result<statement> parse_do_statement(parser_data &data)
  */
 parse_result<statement> parse_if_statement(parser_data &data)
 {
-    // if_statement = 'if' expression statement ('else' statement)?
+    // if_statement -> 'if' expression statement ('else' statement)?
     parse_result<expression> condition_result = parse_expression(data);
     bool error = condition_result.error;
     int line_number = condition_result.ast->get_line_number();
@@ -790,7 +794,7 @@ parse_result<statement> parse_if_statement(parser_data &data)
  */
 parse_result<statement> parse_braced_sequence(parser_data &data)
 {
-    // braced_sequence = '{' statement* '}'
+    // braced_sequence -> '{' sequence '}'
     std::vector<statement *> statements;
     bool error = false;
 
@@ -807,6 +811,7 @@ parse_result<statement> parse_braced_sequence(parser_data &data)
 
     // EOF before closing brace
     write_expectation_error_message(data, "'}' here");
+
     return {new sequence_statement(std::move(statements)), true};
 }
 
@@ -819,7 +824,7 @@ parse_result<statement> parse_function_declaration(parser_data &data)
 {
     // var keyword is optional for parameters
     // trailing comma is allowed
-    // function_declaration = 'function' identifier '(' ( 'var'? identifier (',' 'var'? identifier)* ','? )? ')' statement
+    // function_declaration -> 'function' identifier '(' ( 'var'? identifier (',' 'var'? identifier)* ','? )? ')' statement
     if (!match_and_consume(data, token_type::IDENTIFIER))
     {
         write_expectation_error_message(data, "function name after 'function'");
@@ -1055,7 +1060,7 @@ parse_result<statement> parse(std::vector<variable_block *> &literal_variables, 
 
     parse_result<statement> result = parse_module(data);
 
-    // If there are still tokens left after parsing the expression, that means there is an unexpected token
+    // If there are still tokens left after parsing the statement, there is probably something wrong
     if (data.position < (int)data.tokens.size())
     {
         write_error_message(data, std::string("Unexpected token \"") + data.tokens[data.position].to_string(data.source_string) + "\"");

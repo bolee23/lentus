@@ -1,0 +1,25 @@
+var john = table(
+    "first_name", "John",
+    "last_name", "Doe",
+    "age", 20,
+);
+
+// Place values in the table
+john.email = "john@example.com";
+
+func print_name(person) {
+    print("Name: ");
+    print(person["first_name"]); // using []
+    print(" ");
+    print_line(person.last_name); // using .
+}
+
+func is_over_18(person) {
+    return person.age >= 18;
+}
+
+print_name(john);
+
+if is_over_18(john) {
+    print_line(john.first_name + " is over 18!");
+}
