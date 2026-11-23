@@ -6,8 +6,11 @@
 #include <unordered_map>
 #include <filesystem>
 
-#include "variable.hpp"
+#include "data.hpp"
 #include "program-module.hpp"
+
+namespace lentus
+{
 
 /**
  * Represents a single Lentus program, which contains zero or more modules.
@@ -17,8 +20,8 @@ class program
 {
 private:
     std::unordered_map<std::filesystem::path, program_module *> modules;
-    std::vector<variable_block *> variable_blocks; /** List of all dynamically allocated variable_blocks in the program */
-    std::vector<variable_block *> constant_blocks; /** List of all variable_blocks that should live forever (ie literal strings, functions). Allocated during parsing */
+    std::vector<value_block *> variable_blocks; /** List of all dynamically allocated variable_blocks in the program */
+    std::vector<value_block *> constant_blocks; /** List of all variable_blocks that should live forever (ie literal strings, functions). Allocated during parsing */
 
     /**
      * Map of native functions that are available in the language by default.
@@ -36,12 +39,12 @@ public:
     program &operator=(program &&prog);
 
     /**
-     * If the variable has a dynamically allocated variable_block,
+     * If the value has a dynamically allocated value_block,
      * track it so that it can be deallocated when no longer in use.
-     * @param var The variable to track
-     * @return The same variable
+     * @param var The value to track
+     * @return The same value
      */
-    variable track_variable(variable var);
+    value track_variable(value var);
 
     /**
      * Track the given native function for deallocation
@@ -56,40 +59,40 @@ public:
     function *register_native_function(std::string name, function *fn);
 
     /**
-     * Creates a variable that holds a pointer to the given lentus_function and tracks the lentus_function for deallocation.
+     * Creates a value that holds a pointer to the given user_function and tracks the user_function for deallocation.
      */
-    variable create_function(lentus_function *fn);
+    value create_function(user_function *fn);
 
     /**
-     * Creates a variable that holds a pointer to the given lentus_string and tracks the lentus_string for deallocation.
+     * Creates a value that holds a pointer to the given string and tracks the string for deallocation.
      */
-    variable create_string(lentus_string *ptr);
-    variable create_string(const std::string &str) { return create_string(new lentus_string(str)); }
-    variable create_string(std::string &&str) { return create_string(new lentus_string(std::move(str))); }
+    value create_string(string *ptr);
+    value create_string(const std::string &str) { return create_string(new string(str)); }
+    value create_string(std::string &&str) { return create_string(new string(std::move(str))); }
 
     /**
      * Like create_string, but adds to the literal_blocks array instead.
      */
-    variable create_string_literal(lentus_string *ptr);
-    variable create_string_literal(const std::string &str) { return create_string_literal(new lentus_string(str)); }
-    variable create_string_literal(std::string &&str) { return create_string_literal(new lentus_string(std::move(str))); }
+    value create_string_literal(string *ptr);
+    value create_string_literal(const std::string &str) { return create_string_literal(new string(str)); }
+    value create_string_literal(std::string &&str) { return create_string_literal(new string(std::move(str))); }
 
     /**
-     * Creates a variable that holds a pointer to the given lentus_list and tracks the lentus_list for deallocation.
+     * Creates a value that holds a pointer to the given list and tracks the list for deallocation.
      */
-    variable create_list(lentus_list *ptr);
-    variable create_list(const std::vector<variable> &elements) { return create_list(new lentus_list(elements)); }
-    variable create_list(std::vector<variable> &&elements) { return create_list(new lentus_list(std::move(elements))); }
+    value create_list(list *ptr);
+    value create_list(const std::vector<value> &elements) { return create_list(new list(elements)); }
+    value create_list(std::vector<value> &&elements) { return create_list(new list(std::move(elements))); }
 
     /**
-     * Creates a variable that holds a pointer to the given lentus_table and tracks the lentus_table for deallocation.
+     * Creates a value that holds a pointer to the given table and tracks the table for deallocation.
      */
-    variable create_table(lentus_table *ptr);
-    variable create_table(const std::unordered_map<variable, variable, variable_hasher, variable_equal> &entries) { return create_table(new lentus_table(entries)); }
-    variable create_table(std::unordered_map<variable, variable, variable_hasher, variable_equal> &&entries) { return create_table(new lentus_table(std::move(entries))); }
+    value create_table(table *ptr);
+    value create_table(const std::unordered_map<value, value, value_hasher, value_equal> &entries) { return create_table(new table(entries)); }
+    value create_table(std::unordered_map<value, value, value_hasher, value_equal> &&entries) { return create_table(new table(std::move(entries))); }
 
-    lentus_list *create_empty_list();
-    lentus_table *create_empty_table();
+    list *create_empty_list();
+    table *create_empty_table();
 
     ~program();
 
@@ -108,22 +111,22 @@ public:
      * Executes an anonymous module with the given source code. This is used for executing code from the REPL.
      * @param str The source code of the anonymous module
      * @param error_stream The stream to write error messages to
-     * @return The result of the execution as a variable, or std::nullopt if there was an error during execution
+     * @return The result of the execution as a value, or std::nullopt if there was an error during execution
      */
-    std::optional<variable *> execute_anonymous_module(const std::string &str, std::ostream &error_stream);
+    std::optional<value *> execute_anonymous_module(const std::string &str, std::ostream &error_stream);
 
     const std::unordered_map<std::string, function *> &get_native_functions() const { return native_functions; }
     std::unordered_map<std::string, function *> &get_native_functions() { return native_functions; }
 };
 
-class lentus_runtime_exception : public std::exception
+class runtime_exception : public std::exception
 {
     std::string message;
     const ast_node *node;
 
 public:
-    lentus_runtime_exception(std::string &message, const ast_node *node = nullptr) : message(message), node(node) {}
-    lentus_runtime_exception(std::string &&message, const ast_node *node = nullptr) : message(std::move(message)), node(node) {}
+    runtime_exception(std::string &message, const ast_node *node = nullptr) : message(message), node(node) {}
+    runtime_exception(std::string &&message, const ast_node *node = nullptr) : message(std::move(message)), node(node) {}
 
     const char *what() const noexcept { return message.c_str(); }
 
@@ -155,17 +158,17 @@ public:
 /**
  * Thrown when executing a return statement. 
  * Contains the return value.
- * If no value is returned, the return value is a variable of type NONE.
+ * If no value is returned, the return value is a value of type NONE.
  */
 class return_signal : public std::exception
 {
 private:
-    variable return_value;
+    value return_value;
 
 public:
-    return_signal(variable value) : return_value(value) {}
-    return_signal(variable &&value) : return_value(std::move(value)) {}
-    variable get_return_value() const { return return_value; }
+    return_signal(value val) : return_value(val) {}
+    return_signal(value &&value) : return_value(std::move(value)) {}
+    value get_return_value() const { return return_value; }
     const char *what() const noexcept { return "Return statement"; }
 };
 
@@ -177,5 +180,7 @@ struct source_line
 };
 
 std::vector<source_line> split_lines(const std::string &source_string);
+
+} // namespace lentus
 
 #endif

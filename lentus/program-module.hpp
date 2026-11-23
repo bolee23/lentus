@@ -5,8 +5,11 @@
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
-#include "variable.hpp"
+#include "data.hpp"
 #include "statement.hpp"
+
+namespace lentus
+{
 class source_line;
 
 /**
@@ -17,15 +20,15 @@ class program_module
 private:
     std::filesystem::path path;
     statement *root_statement;
-    lentus_table *global_table; /** Global table contains only the module's variables/functions that are marked with 'export' */
+    table *global_table; /** Global table contains only the module's variables/functions that are marked with 'export' */
 
     std::string source_code;               /** The source code of the module, used for error reporting */
     std::vector<source_line> source_lines; /** The source code split into lines, used for error reporting */
 
 public:
-    program_module(const std::filesystem::path &path, statement *root_statement, lentus_table *global_table, std::string &&source_code = "", std::vector<source_line> &&source_lines = {}) : path(path), root_statement(root_statement), global_table(global_table), source_code(source_code), source_lines(source_lines) {}
+    program_module(const std::filesystem::path &path, statement *root_statement, table *global_table, std::string &&source_code = "", std::vector<source_line> &&source_lines = {}) : path(path), root_statement(root_statement), global_table(global_table), source_code(source_code), source_lines(source_lines) {}
 
-    lentus_table *get_global_table() const { return global_table; }
+    table *get_global_table() const { return global_table; }
 
     std::filesystem::path get_path() const { return path; }
     const statement *get_root_statement() const { return root_statement; }
@@ -49,12 +52,12 @@ public:
 class anonymous_module
 {
 private:
-    lentus_table *global_table;
+    table *global_table;
 
 public:
-    anonymous_module(lentus_table *global_table) : global_table(global_table) {}
+    anonymous_module(table *global_table) : global_table(global_table) {}
 
-    lentus_table *get_global_table() const { return global_table; };
+    table *get_global_table() const { return global_table; };
 };
 
 /**
@@ -66,6 +69,8 @@ public:
  * @param lp_debug Whether to print debug messages during lexing and parsing
  * @return The created module, or std::nullopt if creation failed
  */
-std::optional<program_module *> create_module(std::vector<variable_block *> &literal_variables, const std::filesystem::path &path, std::ostream &error_stream, lentus_table *global_table, bool lp_debug = false);
+std::optional<program_module *> create_module(std::vector<value_block *> &literal_variables, const std::filesystem::path &path, std::ostream &error_stream, table *global_table, bool lp_debug = false);
+
+} // namespace lentus
 
 #endif

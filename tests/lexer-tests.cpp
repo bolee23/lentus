@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../lentus/lentus.hpp"
+
+using namespace lentus;
 #include <iostream>
 
 TEST_CASE("handle_string_constant handles unterminated string constants", "[lexer]")

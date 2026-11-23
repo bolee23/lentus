@@ -1,15 +1,17 @@
 // This test file is AI generated
 #include <catch2/catch_test_macros.hpp>
-#include "../lentus/variable.hpp"
+#include "../lentus/data.hpp"
 
-TEST_CASE("variable move semantics")
+using namespace lentus;
+
+TEST_CASE("value move semantics")
 {
-    lentus_string *s = new lentus_string(std::string("hello"));
-    variable v(s);
-    variable v2(std::move(v));
+    string *s = new string(std::string("hello"));
+    value v(s);
+    value v2(std::move(v));
 
-    REQUIRE(v.get_type() == variable_type::NONE);
-    REQUIRE(v2.get_type() == variable_type::STRING);
+    REQUIRE(v.get_type() == value_type::NONE);
+    REQUIRE(v2.get_type() == value_type::STRING);
     REQUIRE(v2.get_string() == s);
 
     // cleanup
@@ -18,22 +20,22 @@ TEST_CASE("variable move semantics")
 
 TEST_CASE("reference copy and modify")
 {
-    variable v(42.0);
+    value v(42.0);
     reference r(&v);
     reference r2 = r;
 
-    *r2 = variable(100.0);
+    *r2 = value(100.0);
     REQUIRE(v.get_number() == 100.0);
 }
 
-TEST_CASE("lentus_list bounds")
+TEST_CASE("list bounds")
 {
-    lentus_list *list = new lentus_list();
-    list->push_back(variable(5.0));
+    list *items = new list();
+    items->push_back(value(5.0));
 
-    REQUIRE(list->size() == 1);
-    REQUIRE(list->operator[](0).get_number() == 5.0);
-    REQUIRE_THROWS_AS(list->at(1), std::out_of_range);
+    REQUIRE(items->size() == 1);
+    REQUIRE(items->operator[](0).get_number() == 5.0);
+    REQUIRE_THROWS_AS(items->at(1), std::out_of_range);
 
-    delete list;
+    delete items;
 }

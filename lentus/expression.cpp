@@ -5,6 +5,9 @@
 #include "function.hpp"
 #include <algorithm>
 
+namespace lentus
+{
+
 unary_expression::unary_expression(unary_expression &&other)
 {
     op = std::move(other.op);
@@ -136,33 +139,33 @@ grouping_expression::~grouping_expression()
     delete inner_expression;
 }
 
-literal_expression::literal_expression(lentus_string *string, int line_number, int start_position, int end_position)
+literal_expression::literal_expression(string *string, int line_number, int start_position, int end_position)
 {
-    this->value = variable(string);
+    this->stored_value = value(string);
     this->line_number = line_number;
     this->start_position = start_position;
     this->end_position = end_position;
 }
 
-literal_expression::literal_expression(lentus_function *function, int line_number, int start_position, int end_position)
+literal_expression::literal_expression(user_function *function, int line_number, int start_position, int end_position)
 {
-    this->value = variable(function);
+    this->stored_value = value(function);
     this->line_number = line_number;
     this->start_position = start_position;
     this->end_position = end_position;
 }
 
-literal_expression::literal_expression(literal_expression &&other) : value(std::move(other.value))
+literal_expression::literal_expression(literal_expression &&other) : stored_value(std::move(other.stored_value))
 {
-    other.value = variable();
+    other.stored_value = value();
 }
 
 literal_expression &literal_expression::operator=(literal_expression &&other)
 {
     if (this != &other)
     {
-        value = std::move(other.value);
-        other.value = variable();
+        stored_value = std::move(other.stored_value);
+        other.stored_value = value();
     }
     return *this;
 }
@@ -173,18 +176,18 @@ literal_expression::~literal_expression()
 
 std::string literal_expression::to_string() const
 {
-    switch (value.get_type())
+    switch (stored_value.get_type())
     {
-    case variable_type::NONE:
+    case value_type::NONE:
         return "none";
-    case variable_type::BOOLEAN:
-        return value.get_boolean() ? "true" : "false";
-    case variable_type::NUMBER:
-        return std::to_string(value.get_number());
-    case variable_type::STRING:
-        return "\"" + value.get_string()->get_value() + "\"";
-    case variable_type::FUNCTION:
-        return value.get_function()->to_string();
+    case value_type::BOOLEAN:
+        return stored_value.get_boolean() ? "true" : "false";
+    case value_type::NUMBER:
+        return std::to_string(stored_value.get_number());
+    case value_type::STRING:
+        return "\"" + stored_value.get_string()->get_value() + "\"";
+    case value_type::FUNCTION:
+        return stored_value.get_function()->to_string();
     default:
         return "literal";
     }
@@ -298,12 +301,12 @@ function_expression::~function_expression()
 
 reference error_expression::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    throw lentus_runtime_exception("Tried to evaluate error_node");
+    throw runtime_exception("Tried to evaluate error_node");
 }
 
 reference literal_expression::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    return this->value;
+    return this->stored_value;
 }
 
 reference unary_expression::evaluate(execution_context &execution) const
@@ -313,65 +316,65 @@ reference unary_expression::evaluate(execution_context &execution) const
     switch (op.get_type())
     {
     case token_type::SUBTRACT: // negation
-        if (!rhs->is(variable_type::NUMBER))
+        if (!rhs->is(value_type::NUMBER))
         {
-            throw lentus_runtime_exception(std::string("Invalid type in negation: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
+            throw runtime_exception(std::string("Invalid type in negation: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
         }
         return reference(-rhs->get_number());
     case token_type::NOT:
-        if (!rhs->is(variable_type::BOOLEAN))
+        if (!rhs->is(value_type::BOOLEAN))
         {
-            throw lentus_runtime_exception(std::string("Invalid type in logical NOT: BOOLEAN expected, got ") + rhs->get_type_name() + " instead", this);
+            throw runtime_exception(std::string("Invalid type in logical NOT: BOOLEAN expected, got ") + rhs->get_type_name() + " instead", this);
         }
         return reference(!rhs->get_boolean());
     case token_type::INCREMENT:
-        if (!rhs->is(variable_type::NUMBER))
+        if (!rhs->is(value_type::NUMBER))
         {
-            throw lentus_runtime_exception(std::string("Invalid type in increment: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
+            throw runtime_exception(std::string("Invalid type in increment: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
         }
         else if (rhs.is_modifiable_reference())
         {
             if (is_postfix) // var++;
             {
-                reference original = rhs;
-                *rhs = variable(rhs->get_number() + 1);
-                return reference(*original); // Convert to rvalue
+                value original = *rhs;
+                *rhs = value(rhs->get_number() + 1);
+                return reference(original); // Convert to rvalue
             }
             else // ++var;
             {
-                *rhs = variable(rhs->get_number() + 1);
+                *rhs = value(rhs->get_number() + 1);
                 return rhs;
             }
         }
         else
         {
-            throw lentus_runtime_exception("Cannot apply increment operator to unmodifiable value", this);
+            throw runtime_exception("Cannot apply increment operator to unmodifiable value", this);
         }
     case token_type::DECREMENT:
-        if (!rhs->is(variable_type::NUMBER))
+        if (!rhs->is(value_type::NUMBER))
         {
-            throw lentus_runtime_exception(std::string("Invalid type in decrement: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
+            throw runtime_exception(std::string("Invalid type in decrement: NUMBER expected, got ") + rhs->get_type_name() + " instead", this);
         }
         else if (rhs.is_modifiable_reference())
         {
             if (is_postfix) // var--;
             {
-                reference original = rhs;
-                *rhs = variable(rhs->get_number() - 1);
-                return reference(*original); // Convert to rvalue
+                value original = *rhs;
+                *rhs = value(rhs->get_number() - 1);
+                return reference(original); // Convert to rvalue
             }
             else // --var;
             {
-                *rhs = variable(rhs->get_number() - 1);
+                *rhs = value(rhs->get_number() - 1);
                 return rhs;
             }
         }
         else
         {
-            throw lentus_runtime_exception("Cannot apply decrement operator to unmodifiable value", this);
+            throw runtime_exception("Cannot apply decrement operator to unmodifiable value", this);
         }
     default:
-        throw lentus_runtime_exception("Invalid unary operator token " + op.to_string(), this);
+        throw runtime_exception("Invalid unary operator token " + op.to_string(), this);
     }
 }
 
@@ -380,13 +383,13 @@ reference unary_expression::evaluate(execution_context &execution) const
  */
 void antisymmetric_comparison_check(const binary_expression *ptr, reference lhs, reference rhs)
 {
-    if (lhs->get_type() == variable_type::TABLE || lhs->get_type() == variable_type::FUNCTION)
+    if (lhs->get_type() == value_type::TABLE || lhs->get_type() == value_type::FUNCTION)
     {
-        throw lentus_runtime_exception(std::string("Cannot use comparison operator with type ") + lhs->get_type_name(), ptr);
+        throw runtime_exception(std::string("Cannot use comparison operator with type ") + lhs->get_type_name(), ptr);
     }
-    else if (lhs->get_type() == variable_type::LIST && lhs->get_list()->size() != rhs->get_list()->size())
+    else if (lhs->get_type() == value_type::LIST && lhs->get_list()->size() != rhs->get_list()->size())
     {
-        throw lentus_runtime_exception(std::string("Cannot compare lists with mismatched sizes: lhs_size=") + std::to_string(lhs->get_list()->size()) + " rhs_size=" + std::to_string(rhs->get_list()->size()), ptr);
+        throw runtime_exception(std::string("Cannot compare lists with mismatched sizes: lhs_size=") + std::to_string(lhs->get_list()->size()) + " rhs_size=" + std::to_string(rhs->get_list()->size()), ptr);
     }
 }
 
@@ -398,14 +401,14 @@ reference binary_expression::evaluate(execution_context &execution) const
     switch (op.get_type())
     {
     case token_type::ADD:
-        if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+        if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
         {
             return reference(lhs->get_number() + rhs->get_number());
         }
-        else if (lhs->is(variable_type::STRING) && rhs->is(variable_type::STRING))
+        else if (lhs->is(value_type::STRING) && rhs->is(value_type::STRING))
         {
-            lentus_string *left_string = lhs->get_string();
-            lentus_string *right_string = rhs->get_string();
+            string *left_string = lhs->get_string();
+            string *right_string = rhs->get_string();
             std::string str;
             str.reserve(left_string->get_value().size() + right_string->get_value().size());
             str.append(left_string->get_value());
@@ -414,60 +417,60 @@ reference binary_expression::evaluate(execution_context &execution) const
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid / mismatched types in '+': lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Invalid / mismatched types in '+': lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::SUBTRACT:
-        if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+        if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
         {
             return reference(lhs->get_number() - rhs->get_number());
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid types in '-': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Invalid types in '-': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::MULTIPLY:
-        if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+        if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
         {
             return reference(lhs->get_number() * rhs->get_number());
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid types in '*': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Invalid types in '*': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::DIVIDE:
-        if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+        if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
         {
             return reference(lhs->get_number() / rhs->get_number());
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid types in '/': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Invalid types in '/': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::EQUAL:
         if (lhs->get_type() == rhs->get_type())
         {
             return reference(*lhs == *rhs);
         }
-        else if (lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
+        else if (lhs->is(value_type::NONE) || rhs->is(value_type::NONE)) // Allow comparisons from any type to none
         {
             return reference(false);
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Mismatched types in \"==\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Mismatched types in \"==\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::NOT_EQUAL:
         if (lhs->get_type() == rhs->get_type())
         {
             return reference(*lhs != *rhs);
         }
-        else if (lhs->is(variable_type::NONE) || rhs->is(variable_type::NONE)) // Allow comparisons from any type to none
+        else if (lhs->is(value_type::NONE) || rhs->is(value_type::NONE)) // Allow comparisons from any type to none
         {
             return reference(true);
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Mismatched types in \"!=\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Mismatched types in \"!=\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::LESS:
         if (lhs->get_type() == rhs->get_type())
@@ -477,7 +480,7 @@ reference binary_expression::evaluate(execution_context &execution) const
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Mismatched types in \"<\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Mismatched types in \"<\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::LESS_EQUAL:
         if (lhs->get_type() == rhs->get_type())
@@ -488,7 +491,7 @@ reference binary_expression::evaluate(execution_context &execution) const
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Mismatched types in \"<=\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Mismatched types in \"<=\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::GREATER:
         if (lhs->get_type() == rhs->get_type())
@@ -499,7 +502,7 @@ reference binary_expression::evaluate(execution_context &execution) const
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Mismatched types in \">\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Mismatched types in \">\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::GREATER_EQUAL:
         if (lhs->get_type() == rhs->get_type())
@@ -510,25 +513,25 @@ reference binary_expression::evaluate(execution_context &execution) const
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Mismatched types in \">=\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Mismatched types in \">=\", got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::OR:
-        if (lhs->is(variable_type::BOOLEAN) && rhs->is(variable_type::BOOLEAN))
+        if (lhs->is(value_type::BOOLEAN) && rhs->is(value_type::BOOLEAN))
         {
             return reference(lhs->get_boolean() || rhs->get_boolean());
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid types in \"or\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Invalid types in \"or\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::AND:
-        if (lhs->is(variable_type::BOOLEAN) && rhs->is(variable_type::BOOLEAN))
+        if (lhs->is(value_type::BOOLEAN) && rhs->is(value_type::BOOLEAN))
         {
             return reference(lhs->get_boolean() && rhs->get_boolean());
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid types in \"and\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+            throw runtime_exception(std::string("Invalid types in \"and\": expected BOOLEAN, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
         }
     case token_type::ASSIGN:
         if (lhs.is_modifiable_reference())
@@ -538,86 +541,86 @@ reference binary_expression::evaluate(execution_context &execution) const
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+            throw runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
     case token_type::ADD_ASSIGN:
         if (lhs.is_modifiable_reference())
         {
-            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
             {
-                *lhs = variable(lhs->get_number() + rhs->get_number());
+                *lhs = value(lhs->get_number() + rhs->get_number());
                 return lhs;
             }
-            else if (lhs->is(variable_type::STRING) && rhs->is(variable_type::STRING))
+            else if (lhs->is(value_type::STRING) && rhs->is(value_type::STRING))
             {
-                lentus_string *left_string = lhs->get_string();
-                lentus_string *right_string = rhs->get_string();
-                lentus_string *new_string = new lentus_string(std::string(**left_string + **right_string));
-                *lhs = variable(execution.get_program().create_string(new_string));
+                string *left_string = lhs->get_string();
+                string *right_string = rhs->get_string();
+                string *new_string = new string(std::string(**left_string + **right_string));
+                *lhs = value(execution.get_program().create_string(new_string));
                 return lhs;
             }
             else
             {
-                throw lentus_runtime_exception(std::string("Invalid / mismatched types in '+=': lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+                throw runtime_exception(std::string("Invalid / mismatched types in '+=': lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
             }
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+            throw runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
     case token_type::SUBTRACT_ASSIGN:
         if (lhs.is_modifiable_reference())
         {
-            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
             {
-                *lhs = variable(lhs->get_number() - rhs->get_number());
+                *lhs = value(lhs->get_number() - rhs->get_number());
                 return lhs;
             }
             else
             {
-                throw lentus_runtime_exception(std::string("Invalid types in '-=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+                throw runtime_exception(std::string("Invalid types in '-=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
             }
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+            throw runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
     case token_type::MULTIPLY_ASSIGN:
         if (lhs.is_modifiable_reference())
         {
-            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
             {
-                *lhs = variable(lhs->get_number() * rhs->get_number());
+                *lhs = value(lhs->get_number() * rhs->get_number());
                 return lhs;
             }
             else
             {
-                throw lentus_runtime_exception(std::string("Invalid types in '*=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+                throw runtime_exception(std::string("Invalid types in '*=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
             }
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+            throw runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
     case token_type::DIVIDE_ASSIGN:
         if (lhs.is_modifiable_reference())
         {
-            if (lhs->is(variable_type::NUMBER) && rhs->is(variable_type::NUMBER))
+            if (lhs->is(value_type::NUMBER) && rhs->is(value_type::NUMBER))
             {
-                *lhs = variable(lhs->get_number() / rhs->get_number());
+                *lhs = value(lhs->get_number() / rhs->get_number());
                 return lhs;
             }
             else
             {
-                throw lentus_runtime_exception(std::string("Invalid types in '/=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
+                throw runtime_exception(std::string("Invalid types in '/=': NUMBER expected, got lhs=") + lhs->get_type_name() + " rhs=" + rhs->get_type_name(), this);
             }
         }
         else
         {
-            throw lentus_runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
+            throw runtime_exception(std::string("Invalid assignment target: cannot assign to a non-modifiable reference"), this);
         }
     default:
-        throw lentus_runtime_exception("Invalid binary operator token " + op.to_string(), this);
+        throw runtime_exception("Invalid binary operator token " + op.to_string(), this);
     }
 }
 
@@ -635,17 +638,17 @@ reference identifier_expression::evaluate(execution_context &execution) const
     }
     else
     {
-        throw lentus_runtime_exception(std::string("Unrecognized symbol " + identifier), this);
+        throw runtime_exception(std::string("Unrecognized symbol " + identifier), this);
     }
 }
 
 reference call_expression::evaluate(execution_context &execution) const
 {
     reference callee_var = callee->evaluate(execution);
-    if (callee_var->is(variable_type::FUNCTION))
+    if (callee_var->is(value_type::FUNCTION))
     {
         function *fn = callee_var->get_function();
-        std::vector<variable> argument_values;
+        std::vector<value> argument_values;
         for (expression *argument : arguments)
         {
             argument_values.push_back(argument->evaluate(execution).get());
@@ -654,10 +657,10 @@ reference call_expression::evaluate(execution_context &execution) const
     }
     else
     {
-        throw lentus_runtime_exception(std::string("Attempted to call a non-function value of type ") + callee_var->get_type_name(), this);
+        throw runtime_exception(std::string("Attempted to call a non-function value of type ") + callee_var->get_type_name(), this);
     }
 
-    return variable();
+    return value();
 }
 
 function_expression::function_expression(function_expression &&other)
@@ -693,9 +696,9 @@ reference function_expression::evaluate(execution_context &execution) const
 {
     program_module *current_module = execution.get_current_module();
     std::vector<stack_frame> stack = execution.get_stack();
-    lentus_function *current_fn = execution.get_current_function();
+    user_function *current_fn = execution.get_current_function();
 
-    std::vector<lentus_table *> captured_stack;
+    std::vector<table *> captured_stack;
 
     // Capture local variables
     for (int i = stack.size() - 1; i >= 0; i--)
@@ -711,7 +714,7 @@ reference function_expression::evaluate(execution_context &execution) const
     // Capture local variables from current function
     if (current_fn != nullptr)
     {
-        std::vector<lentus_table *> previous_captured_stack = current_fn->get_captured_variable_tables();
+        std::vector<table *> previous_captured_stack = current_fn->get_captured_variable_tables();
         for (int i = previous_captured_stack.size() - 1; i >= 0; i--)
         {
             captured_stack.push_back(previous_captured_stack[i]);
@@ -723,7 +726,7 @@ reference function_expression::evaluate(execution_context &execution) const
     // captures from other functions at the start (lower priority)
     std::reverse(captured_stack.begin(), captured_stack.end());
 
-    return execution.get_program().create_function(new lentus_function(name, body, &parameter_names, current_module, std::move(captured_stack)));
+    return execution.get_program().create_function(new user_function(name, body, &parameter_names, current_module, std::move(captured_stack)));
 }
 
 reference subscript_expression::evaluate(execution_context &execution) const
@@ -731,31 +734,33 @@ reference subscript_expression::evaluate(execution_context &execution) const
     reference left_ref = left->evaluate(execution);
     reference right_ref = right->evaluate(execution);
 
-    if (left_ref->is(variable_type::TABLE)) // Index into table
+    if (left_ref->is(value_type::TABLE)) // Index into table
     {
-        if (right_ref->is(variable_type::TABLE) || right_ref->is(variable_type::FUNCTION) || right_ref->is(variable_type::LIST))
+        if (right_ref->is(value_type::TABLE) || right_ref->is(value_type::FUNCTION) || right_ref->is(value_type::LIST))
         {
-            throw lentus_runtime_exception("Invalid table key type " + right_ref->get_type_name(), this);
+            throw runtime_exception("Invalid table key type " + right_ref->get_type_name(), this);
         }
-        lentus_table *table = left_ref->get_table();
+        table *table = left_ref->get_table();
         return reference(&table->operator[](*right_ref));
     }
-    else if (left_ref->is(variable_type::LIST)) // Index into list
+    else if (left_ref->is(value_type::LIST)) // Index into list
     {
-        lentus_list *list = left_ref->get_list();
-        if (!right_ref->is(variable_type::NUMBER))
+        list *list = left_ref->get_list();
+        if (!right_ref->is(value_type::NUMBER))
         {
-            throw lentus_runtime_exception(std::string("List index must be a number, got ") + right_ref->get_type_name(), this);
+            throw runtime_exception(std::string("List index must be a number, got ") + right_ref->get_type_name(), this);
         }
         long long index = (long long)right_ref->get_number();
         if (index < 0 || (size_t)index >= list->size())
         {
-            throw lentus_runtime_exception(std::string("List index ") + std::to_string(index) + " out of bounds for list size " + std::to_string(list->size()), this);
+            throw runtime_exception(std::string("List index ") + std::to_string(index) + " out of bounds for list size " + std::to_string(list->size()), this);
         }
         return reference(&(*list)[index]);
     }
     else
     {
-        throw lentus_runtime_exception(std::string("Attempted to index into a value of type ") + left_ref->get_type_name(), this);
+        throw runtime_exception(std::string("Attempted to index into a value of type ") + left_ref->get_type_name(), this);
     }
 }
+
+} // namespace lentus

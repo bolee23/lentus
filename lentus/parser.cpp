@@ -2,6 +2,9 @@
 #include <iostream>
 #include "function.hpp"
 
+namespace lentus
+{
+
 /**
  * LENTUS PARSER
  * This parser uses a recursive descent parsing approach.
@@ -181,22 +184,22 @@ parse_result<expression> parse_primary(parser_data &data)
 
     case token_type::FALSE:
         data.position++;
-        return {new literal_expression(variable(false), line_number, start_position, end_position), false};
+        return {new literal_expression(value(false), line_number, start_position, end_position), false};
     case token_type::TRUE:
         data.position++;
-        return {new literal_expression(variable(true), line_number, start_position, end_position), false};
+        return {new literal_expression(value(true), line_number, start_position, end_position), false};
     case token_type::NONE:
         data.position++;
-        return {new literal_expression(variable(), line_number, start_position, end_position), false};
+        return {new literal_expression(value(), line_number, start_position, end_position), false};
     case token_type::NUMBER:
         data.position++;
-        return {new literal_expression(variable(current.get_number_constant()), line_number, start_position, end_position), false};
+        return {new literal_expression(value(current.get_number_constant()), line_number, start_position, end_position), false};
     case token_type::STRING:
     {
         data.position++;
-        lentus_string *string_constant = new lentus_string(*current.get_string_constant());
+        string *string_constant = new string(*current.get_string_constant());
         data.constant_blocks.push_back(string_constant);
-        return {new literal_expression(variable(string_constant), line_number, start_position, end_position), false};
+        return {new literal_expression(value(string_constant), line_number, start_position, end_position), false};
     }
     case token_type::LEFT_BRACKET:
     {
@@ -312,9 +315,9 @@ parse_result<expression> parse_member_access(parser_data &data, expression *expr
     const token &identifier_token = data.tokens[data.position];
     data.position++;
 
-    lentus_string *identifier_string = new lentus_string(*identifier_token.get_identifier_name());
+    string *identifier_string = new string(*identifier_token.get_identifier_name());
     data.constant_blocks.push_back(identifier_string);
-    expression *right = new literal_expression(variable(identifier_string), identifier_token.get_line_number(), identifier_token.get_start_position(), identifier_token.get_end_position());
+    expression *right = new literal_expression(value(identifier_string), identifier_token.get_line_number(), identifier_token.get_start_position(), identifier_token.get_end_position());
 
     return {new subscript_expression(expr, right, expr->get_line_number(), expr->get_start_position(), identifier_token.get_end_position()), false};
 }
@@ -531,7 +534,7 @@ parse_result<expression> parse_expression(parser_data &data)
 }
 
 /**
- * Parses a variable declaration statement
+ * Parses a value declaration statement
  * @data Parser data, with the "var" token already consumed.
  * @return A declaration statement, and error status.
  */
@@ -541,7 +544,7 @@ parse_result<statement> parse_declaration(parser_data &data)
     if (match_and_consume(data, token_type::IDENTIFIER))
     {
         const token &identifier_token = data.tokens[data.position - 1];
-        lentus_string *identifier = new lentus_string(*identifier_token.get_identifier_name());
+        string *identifier = new string(*identifier_token.get_identifier_name());
         data.constant_blocks.push_back(identifier);
 
         int line_number = identifier_token.get_line_number();
@@ -796,7 +799,7 @@ parse_result<statement> parse_function_declaration(parser_data &data)
     }
 
     const token &identifier_token = data.tokens[data.position - 1];
-    lentus_string *identifier = new lentus_string(*identifier_token.get_identifier_name());
+    string *identifier = new string(*identifier_token.get_identifier_name());
     data.constant_blocks.push_back(identifier);
     int line_number = identifier_token.get_line_number();
     int start_position = identifier_token.get_start_position();
@@ -807,7 +810,7 @@ parse_result<statement> parse_function_declaration(parser_data &data)
         return {new error_statement(), true};
     }
 
-    std::vector<lentus_string *> parameters;
+    std::vector<string *> parameters;
 
     while (!match_and_consume(data, token_type::RIGHT_BRACKET))
     {
@@ -820,7 +823,7 @@ parse_result<statement> parse_function_declaration(parser_data &data)
             return {new error_statement(), true};
         }
 
-        lentus_string *param = new lentus_string(*data.tokens[data.position - 1].get_identifier_name());
+        string *param = new string(*data.tokens[data.position - 1].get_identifier_name());
         data.constant_blocks.push_back(param);
         parameters.push_back(param);
 
@@ -842,7 +845,7 @@ parse_result<statement> parse_function_declaration(parser_data &data)
     // The function
     function_expression *fn = new function_expression(identifier, body_result.ast, std::move(parameters), line_number, start_position, end_position);
 
-    // The variable declaration statement that declares the function name and assigns the function to it
+    // The value declaration statement that declares the function name and assigns the function to it
     declaration_statement *declaration = new declaration_statement(identifier, fn, line_number, start_position, end_position);
     return {declaration, error};
 }
@@ -917,7 +920,7 @@ parse_result<statement> parse_continue_statement(parser_data &data)
 
 /**
  * Parses an individual statement.
- * @param allow_declarations Whether to allow variable or function declarations in this statement.
+ * @param allow_declarations Whether to allow value or function declarations in this statement.
  * @return Parsed statement, and error status.
  */
 parse_result<statement> parse_statement(parser_data &data, bool allow_declarations)
@@ -1012,7 +1015,7 @@ parse_result<statement> parse_module(parser_data &data)
     return parse_sequence(data);
 }
 
-parse_result<statement> parse(std::vector<variable_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, const std::vector<source_line> &lines, std::ostream &error_stream)
+parse_result<statement> parse(std::vector<value_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, const std::vector<source_line> &lines, std::ostream &error_stream)
 {
     // Special case : empty input, single empty sequence statement is returned, and no error is reported
     if (tokens.empty())
@@ -1038,3 +1041,4 @@ void write_ast_node(ast_node *node)
 {
     std::cout << node->to_string() << std::endl;
 }
+} // namespace lentus

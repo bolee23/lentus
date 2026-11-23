@@ -3,6 +3,9 @@
 #include <magic_enum/magic_enum.hpp>
 #include <format>
 
+namespace lentus
+{
+
 token::token(const token &tok)
 {
     type = tok.type;
@@ -189,3 +192,4 @@ token::~token()
         break;
     }
 }
+} // namespace lentus

@@ -2,6 +2,9 @@
 #include <iostream>
 #include "function.hpp"
 
+namespace lentus
+{
+
 std::optional<reference> execution_context::execute_module(program_module *mdl)
 {
     const statement *current_statement = mdl->get_root_statement();
@@ -14,7 +17,7 @@ std::optional<reference> execution_context::execute_module(program_module *mdl)
         pop();
         return result;
     }
-    catch (lentus_runtime_exception &exception)
+    catch (runtime_exception &exception)
     {
         if (exception.get_node())
         {
@@ -56,7 +59,7 @@ std::optional<reference> execution_context::execute_module(program_module *mdl)
     }
 }
 
-stack_frame &execution_context::push_new_function(lentus_function *current_function)
+stack_frame &execution_context::push_new_function(user_function *current_function)
 {
     return stack.emplace_back(current_function->get_current_module(), current_function, prgm->create_empty_table());
 }
@@ -73,7 +76,7 @@ program_module *execution_context::get_current_module()
     }
 }
 
-lentus_function *execution_context::get_current_function()
+user_function *execution_context::get_current_function()
 {
     if (stack.empty())
     {
@@ -92,10 +95,10 @@ std::optional<reference> execution_context::get_variable(const std::string &iden
         return std::nullopt;
     }
 
-    lentus_string str = identifier;
+    string str = identifier;
 
     program_module *current_module = get_current_module();
-    lentus_function *current_function = get_current_function();
+    user_function *current_function = get_current_function();
 
     for (int i = stack.size() - 1; i >= 0; i--)
     {
@@ -126,7 +129,7 @@ std::optional<reference> execution_context::get_variable(const std::string &iden
     // Search global table if not inside function.
     if (current_module != nullptr)
     {
-        lentus_table *table_ptr = current_module->get_global_table();
+        table *table_ptr = current_module->get_global_table();
 
         if (table_ptr->contains(&str))
         {
@@ -150,3 +153,5 @@ void execution_context::stack_synchronize(int size)
         stack.pop_back();
     }
 }
+
+} // namespace lentus

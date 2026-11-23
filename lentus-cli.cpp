@@ -1,4 +1,6 @@
 #include "lentus/lentus.hpp"
+
+using namespace lentus;
 #include <iostream>
 #include <fstream>
 #include <filesystem>

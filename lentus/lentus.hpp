@@ -3,7 +3,7 @@
 
 #include "token.hpp"
 #include "lexer.hpp"
-#include "variable.hpp"
+#include "data.hpp"
 #include "ast-node.hpp"
 #include "expression.hpp"
 #include "statement.hpp"

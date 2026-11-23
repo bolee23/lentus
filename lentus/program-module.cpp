@@ -5,7 +5,10 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 
-std::optional<program_module *> create_module(std::vector<variable_block *> &literal_variables, const std::filesystem::path &path, std::ostream &error_stream, lentus_table *global_table, bool lp_debug)
+namespace lentus
+{
+
+std::optional<program_module *> create_module(std::vector<value_block *> &literal_variables, const std::filesystem::path &path, std::ostream &error_stream, table *global_table, bool lp_debug)
 {
     // Read file
     std::ifstream input_stream(path);
@@ -71,3 +74,5 @@ program_module::~program_module()
     // global_table is owned by the program class
     delete root_statement;
 }
+
+} // namespace lentus

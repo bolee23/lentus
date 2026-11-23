@@ -5,28 +5,31 @@
 #include "execution.hpp"
 #include "function.hpp"
 
-variable program::track_variable(variable var)
+namespace lentus
 {
-    if (var.get_type() == variable_type::STRING)
+
+value program::track_variable(value val)
+{
+    if (val.get_type() == value_type::STRING)
     {
-        variable_blocks.push_back(var.get_string());
+        variable_blocks.push_back(val.get_string());
     }
-    else if (var.get_type() == variable_type::LIST)
+    else if (val.get_type() == value_type::LIST)
     {
-        variable_blocks.push_back(var.get_list());
+        variable_blocks.push_back(val.get_list());
     }
-    else if (var.get_type() == variable_type::TABLE)
+    else if (val.get_type() == value_type::TABLE)
     {
-        variable_blocks.push_back(var.get_table());
+        variable_blocks.push_back(val.get_table());
     }
 
-    return var;
+    return val;
 }
 
-variable program::create_function(lentus_function *fn)
+value program::create_function(user_function *fn)
 {
     variable_blocks.push_back(fn);
-    return variable(fn);
+    return value(fn);
 }
 
 function *program::track_native_function(function *fn)
@@ -35,42 +38,42 @@ function *program::track_native_function(function *fn)
     return fn;
 }
 
-variable program::create_string(lentus_string *ptr)
+value program::create_string(string *ptr)
 {
     variable_blocks.push_back(ptr);
-    return variable(ptr);
+    return value(ptr);
 }
 
-variable program::create_string_literal(lentus_string *ptr)
+value program::create_string_literal(string *ptr)
 {
     constant_blocks.push_back(ptr);
-    return variable(ptr);
+    return value(ptr);
 }
 
-variable program::create_list(lentus_list *ptr)
+value program::create_list(list *ptr)
 {
     variable_blocks.push_back(ptr);
-    return variable(ptr);
+    return value(ptr);
 }
 
-variable program::create_table(lentus_table *ptr)
+value program::create_table(table *ptr)
 {
     variable_blocks.push_back(ptr);
-    return variable(ptr);
+    return value(ptr);
 }
 
-lentus_list *program::create_empty_list()
+list *program::create_empty_list()
 {
-    lentus_list *list = new lentus_list();
-    variable_blocks.push_back(list);
-    return list;
+    list *items = new list();
+    variable_blocks.push_back(items);
+    return items;
 }
 
-lentus_table *program::create_empty_table()
+table *program::create_empty_table()
 {
-    lentus_table *table = new lentus_table();
-    variable_blocks.push_back(table);
-    return table;
+    table *entries = new table();
+    variable_blocks.push_back(entries);
+    return entries;
 }
 
 std::optional<program_module *> program::load_module(const std::filesystem::path &path, std::ostream &error_stream, bool lp_debug)
@@ -195,12 +198,12 @@ program::~program()
         delete mod;
     }
 
-    for (variable_block *var : variable_blocks)
+    for (value_block *var : variable_blocks)
     {
         delete var;
     }
 
-    for (variable_block *var : constant_blocks)
+    for (value_block *var : constant_blocks)
     {
         delete var;
     }
@@ -212,3 +215,5 @@ function *program::register_native_function(std::string name, function *fn)
     native_functions[name] = registered_fn;
     return registered_fn;
 }
+
+} // namespace lentus

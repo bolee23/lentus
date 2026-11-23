@@ -2,18 +2,21 @@
 #define LENTUS_EXECUTION_HPP
 
 #include "program.hpp"
-#include "variable.hpp"
+#include "data.hpp"
 
-class lentus_function;
+namespace lentus
+{
+
+class user_function;
 
 /**
- * A single level of variable scope in the call stack.
+ * A single level of value scope in the call stack.
  */
 struct stack_frame
 {
     program_module *current_module;
-    lentus_function *current_function; /** nullptr if not in a function */
-    lentus_table *local_variables;
+    user_function *current_function; /** nullptr if not in a function */
+    table *local_variables;
 };
 
 /**
@@ -39,7 +42,7 @@ public:
      * @param arguments the arguments to execute the function with
      * @return the result of the function execution, or nullopt if the function threw an exception
      */
-    std::optional<reference> execute_function(function *fn, std::vector<variable *> &arguments); // TODO
+    std::optional<reference> execute_function(function *fn, std::vector<value *> &arguments); // TODO
 
     /**
      * From C++ code, execute a module with the given file path. 
@@ -62,7 +65,7 @@ public:
      * @param current_function the function to push
      * @return the new stack frame
      */
-    stack_frame &push_new_function(lentus_function *current_function);
+    stack_frame &push_new_function(user_function *current_function);
 
     /**
      * Push a new stack frame
@@ -116,16 +119,18 @@ public:
      * Get the current function that is being executed
      * @return the function or nullptr if no function is being executed
      */
-    lentus_function *get_current_function();
+    user_function *get_current_function();
 
     /**
-     * Searches down the stack for the nearest definition of a local or global variable with a given identifier
+     * Searches down the stack for the nearest definition of a local or global value with a given identifier
      * The search stops when another module is encountered in the call stack, or when the stack has been exhausted.
-     * Before stopping, the method will also search for the module's global variable table
+     * Before stopping, the method will also search for the module's global value table
      * @param identifier Identifier to search for
-     * @return Modifiable reference to the variable. nullopt if not found.
+     * @return Modifiable reference to the value. nullopt if not found.
      */
     std::optional<reference> get_variable(const std::string &identifier);
 };
+
+} // namespace lentus
 
 #endif

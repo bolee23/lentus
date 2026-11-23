@@ -6,6 +6,9 @@
 #include "expression.hpp"
 #include "program.hpp"
 
+namespace lentus
+{
+
 template <typename T>
 struct parse_result
 {
@@ -24,7 +27,7 @@ struct parser_data
     const std::vector<source_line> &lines;
 
     // State
-    std::vector<variable_block *> &constant_blocks; /* Reference to a vector to add constant variable blocks to */
+    std::vector<value_block *> &constant_blocks; /* Reference to a vector to add constant value blocks to */
     std::ostream &error_stream;
     bool error_found = false;
     int position = 0; /** Current position in the tokens vector */
@@ -37,8 +40,10 @@ struct parser_data
  * @param error_stream stream to write error messages to
  * @return Parse result containing the AST and whether an error was found during parsing
  */
-parse_result<statement> parse(std::vector<variable_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, const std::vector<source_line> &lines, std::ostream &error_stream);
+parse_result<statement> parse(std::vector<value_block *> &literal_variables, const std::vector<token> &tokens, const std::string &source_string, const std::vector<source_line> &lines, std::ostream &error_stream);
 
 void write_ast_node(ast_node *node);
+
+} // namespace lentus
 
 #endif

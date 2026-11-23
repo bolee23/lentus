@@ -27,7 +27,7 @@ FetchContent_MakeAvailable(MagicEnum)
 set(LENTUS_SOURCES
   lentus/lexer.cpp
   lentus/token.cpp
-  lentus/variable.cpp
+  lentus/data.cpp
   lentus/expression.cpp
   lentus/statement.cpp
   lentus/parser.cpp

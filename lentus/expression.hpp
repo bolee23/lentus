@@ -6,10 +6,13 @@
 #include <vector>
 #include <unordered_map>
 #include "token.hpp"
-#include "variable.hpp"
+#include "data.hpp"
 #include "ast-node.hpp"
 
-class lentus_function;
+namespace lentus
+{
+
+class user_function;
 
 /**
  * Base class for all expression AST nodes in the Lentus language.
@@ -143,21 +146,21 @@ public:
 };
 
 /**
- * Represents a literal value as a variable
+ * Represents a literal value as a value
  */
 class literal_expression : public expression
 {
 private:
-    variable value;
+    value stored_value;
 
 public:
-    literal_expression(const variable &value, int line_number, int start_position, int end_position) : value(value)
+    literal_expression(const value &val, int line_number, int start_position, int end_position) : stored_value(val)
     {
         this->line_number = line_number;
         this->start_position = start_position;
         this->end_position = end_position;
     }
-    literal_expression(variable &&value, int line_number, int start_position, int end_position) : value(std::move(value))
+    literal_expression(value &&val, int line_number, int start_position, int end_position) : stored_value(std::move(val))
     {
         this->line_number = line_number;
         this->start_position = start_position;
@@ -167,12 +170,12 @@ public:
     /**
      * Create string literal
      */
-    literal_expression(lentus_string *string, int line_number, int start_position, int end_position);
+    literal_expression(string *string, int line_number, int start_position, int end_position);
 
     /**
      * Create function literal
      */
-    literal_expression(lentus_function *function, int line_number, int start_position, int end_position);
+    literal_expression(user_function *function, int line_number, int start_position, int end_position);
 
     literal_expression(const literal_expression &other) = delete;
     literal_expression &operator=(const literal_expression &other) = delete;
@@ -182,7 +185,7 @@ public:
 
     reference evaluate(execution_context &execution) const override;
 
-    variable get_value() const { return value; }
+    value get_value() const { return stored_value; }
 
     virtual std::string to_string() const override;
 
@@ -221,8 +224,8 @@ public:
 };
 
 /**
- * Expression containing a name for a variable.
- * Evaluating this expression returns a modifiable reference to the associated variable.
+ * Expression containing a name for a value.
+ * Evaluating this expression returns a modifiable reference to the associated value.
  */
 class identifier_expression : public expression
 {
@@ -291,18 +294,18 @@ public:
 /**
  * Represents a function literal.
  * For now, Lentus does not support anonymous functions, so this expression 
- * is only found alongside a variable declaration statement.
+ * is only found alongside a value declaration statement.
  * Evaluates to a function value.
  */
 class function_expression : public expression
 {
 private:
-    lentus_string *name; // optional
+    string *name; // optional
     statement *body;
-    std::vector<lentus_string *> parameter_names;
+    std::vector<string *> parameter_names;
 
 public:
-    function_expression(lentus_string *name, statement *body, std::vector<lentus_string *> &&parameter_names, int line_number, int start_position, int end_position) : name(name), body(body), parameter_names(std::move(parameter_names))
+    function_expression(string *name, statement *body, std::vector<string *> &&parameter_names, int line_number, int start_position, int end_position) : name(name), body(body), parameter_names(std::move(parameter_names))
     {
         this->line_number = line_number;
         this->start_position = start_position;
@@ -319,12 +322,14 @@ public:
      * Evaluating a function expression returns a function value that captures the variables in the current scope.
      */
     reference evaluate(execution_context &execution) const override;
-    const lentus_string *get_name() const { return name; }
+    const string *get_name() const { return name; }
     const statement *get_body() const { return body; }
-    const std::vector<lentus_string *> &get_parameter_names() const { return parameter_names; }
+    const std::vector<string *> &get_parameter_names() const { return parameter_names; }
 
     virtual std::string to_string() const override;
     ~function_expression() override;
 };
+
+} // namespace lentus
 
 #endif

@@ -2,6 +2,9 @@
 #include <iostream>
 #include <unordered_map>
 
+namespace lentus
+{
+
 const token_trie_node token_trie = {
     std::nullopt,
     {
@@ -397,3 +400,5 @@ void write_tokens(const std::vector<token> &tokens, std::ostream &out)
     }
     out << std::endl;
 }
+
+} // namespace lentus

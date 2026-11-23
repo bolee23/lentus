@@ -2,8 +2,11 @@
 #define LENTUS_STATEMENT_HPP
 
 #include "ast-node.hpp"
-#include "variable.hpp"
+#include "data.hpp"
 #include "expression.hpp"
+
+namespace lentus
+{
 
 /**
  * Base class for all statement AST nodes in the Lentus language.
@@ -41,11 +44,11 @@ public:
 class declaration_statement : public statement
 {
 private:
-    variable identifier;
-    expression *value; /** nullptr if not initialized */
+    value identifier;
+    expression *initializer; /** nullptr if not initialized */
 
 public:
-    declaration_statement(lentus_string *identifier, expression *value, int line_number, int start_position, int end_position) : identifier(identifier), value(value)
+    declaration_statement(string *identifier, expression *initializer, int line_number, int start_position, int end_position) : identifier(identifier), initializer(initializer)
     {
         this->line_number = line_number;
         this->start_position = start_position;
@@ -58,8 +61,8 @@ public:
     declaration_statement(declaration_statement &&other);
     declaration_statement &operator=(declaration_statement &&other);
 
-    const lentus_string &get_identifier() const { return *identifier.get_string(); }
-    expression *get_value() const { return value; }
+    const string &get_identifier() const { return *identifier.get_string(); }
+    expression *get_value() const { return initializer; }
 
     reference evaluate(execution_context &execution) const override;
     virtual std::string to_string() const override;
@@ -357,4 +360,6 @@ public:
 
     ~continue_statement() override = default;
 };
+} // namespace lentus
+
 #endif

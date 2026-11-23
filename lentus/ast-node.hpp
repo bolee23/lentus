@@ -2,7 +2,10 @@
 #define LENTUS_AST_NODE_HPP
 
 #include <string>
-#include "variable.hpp"
+#include "data.hpp"
+
+namespace lentus
+{
 
 class execution_context;
 
@@ -34,5 +37,7 @@ public:
      */
     virtual reference evaluate(execution_context &execution) const = 0;
 };
+
+} // namespace lentus
 
 #endif

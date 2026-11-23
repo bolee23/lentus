@@ -4,6 +4,9 @@
 #include <string>
 #include <optional>
 
+namespace lentus
+{
+
 /**
  * Type of token
  */
@@ -193,5 +196,7 @@ public:
 };
 
 std::string token_type_to_string(token_type type);
+
+} // namespace lentus
 
 #endif

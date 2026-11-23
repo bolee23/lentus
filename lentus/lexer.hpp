@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include "token.hpp"
 
+namespace lentus
+{
+
 /**
  * Trie node for tokenizing multi-character tokens (e.g. ==, <=, >=, etc.)
  * The default_token is the token type to return if no match is found for the next character
@@ -92,5 +95,7 @@ void write_error_message(lexer_data &data, const std::string &message);
  * @param out the output stream to write to
  */
 void write_tokens(const std::vector<token> &tokens, std::ostream &out);
+
+} // namespace lentus
 
 #endif

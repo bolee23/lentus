@@ -1,11 +1,14 @@
 #include "statement.hpp"
 #include "execution.hpp"
 
+namespace lentus
+{
+
 declaration_statement::declaration_statement(declaration_statement &&other)
 {
     identifier = std::move(other.identifier);
-    value = other.value;
-    other.value = nullptr;
+    initializer = other.initializer;
+    other.initializer = nullptr;
     line_number = other.line_number;
     start_position = other.start_position;
     end_position = other.end_position;
@@ -15,10 +18,10 @@ declaration_statement &declaration_statement::operator=(declaration_statement &&
 {
     if (this != &other)
     {
-        delete value;
+        delete initializer;
         identifier = std::move(other.identifier);
-        value = other.value;
-        other.value = nullptr;
+        initializer = other.initializer;
+        other.initializer = nullptr;
         line_number = other.line_number;
         start_position = other.start_position;
         end_position = other.end_position;
@@ -28,14 +31,14 @@ declaration_statement &declaration_statement::operator=(declaration_statement &&
 
 declaration_statement::~declaration_statement()
 {
-    delete value;
+    delete initializer;
 }
 
 std::string declaration_statement::to_string() const
 {
-    if (value)
+    if (initializer)
     {
-        return "DECLARE " + identifier.get_string()->get_value() + " = " + value->to_string() + "\n";
+        return "DECLARE " + identifier.get_string()->get_value() + " = " + initializer->to_string() + "\n";
     }
     else
     {
@@ -333,7 +336,7 @@ std::string continue_statement::to_string() const
 
 reference error_statement::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    throw lentus_runtime_exception("Cannot evaluate error_node", this);
+    throw runtime_exception("Cannot evaluate error_node", this);
 }
 
 reference expression_statement::evaluate(execution_context &execution) const
@@ -360,19 +363,19 @@ reference declaration_statement::evaluate(execution_context &execution) const
 {
     if (execution.peek().local_variables->contains(this->identifier))
     { // Already defined in this scope
-        throw lentus_runtime_exception("Variable " + *this->get_identifier() + " already defined in this scope", this);
+        throw runtime_exception("Variable " + *this->get_identifier() + " already defined in this scope", this);
     }
     else
     {
-        if (value == nullptr)
+        if (initializer == nullptr)
         {
-            execution.peek().local_variables->add(this->identifier, variable());
-            return variable();
+            execution.peek().local_variables->add(this->identifier, value());
+            return value();
         }
         else
         {
-            reference ref = value->evaluate(execution);
-            variable result = *ref;
+            reference ref = initializer->evaluate(execution);
+            lentus::value result = *ref;
             execution.peek().local_variables->add(this->identifier, result);
             return result;
         }
@@ -381,10 +384,10 @@ reference declaration_statement::evaluate(execution_context &execution) const
 
 reference if_statement::evaluate(execution_context &execution) const
 {
-    variable condition_result = *condition->evaluate(execution);
-    if (!condition_result.is(variable_type::BOOLEAN))
+    value condition_result = *condition->evaluate(execution);
+    if (!condition_result.is(value_type::BOOLEAN))
     {
-        throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+        throw runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
     }
 
     if (condition_result.get_boolean())
@@ -397,7 +400,7 @@ reference if_statement::evaluate(execution_context &execution) const
     }
     else
     {
-        return variable();
+        return value();
     }
 }
 
@@ -409,7 +412,7 @@ reference for_statement::evaluate(execution_context &execution) const
         var_initializer->evaluate(execution);
     }
 
-    variable last_value = variable();
+    value last_value = value();
 
     int break_marker = execution.stack_position();
     try // break
@@ -417,10 +420,10 @@ reference for_statement::evaluate(execution_context &execution) const
         while (true)
         {
             // Check condition
-            variable condition_result = *condition->evaluate(execution);
-            if (!condition_result.is(variable_type::BOOLEAN))
+            value condition_result = *condition->evaluate(execution);
+            if (!condition_result.is(value_type::BOOLEAN))
             {
-                throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+                throw runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
             }
             if (!condition_result.get_boolean())
             {
@@ -451,13 +454,13 @@ reference for_statement::evaluate(execution_context &execution) const
     {
         execution.stack_synchronize(break_marker);
         execution.pop();
-        return variable();
+        return value();
     }
 }
 
 reference loop_statement::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    variable last_value = variable();
+    value last_value = value();
 
     if (is_do_loop)
     {
@@ -477,10 +480,10 @@ reference loop_statement::evaluate([[maybe_unused]] execution_context &execution
                 }
 
                 // Check condition
-                variable condition_result = *condition->evaluate(execution);
-                if (!condition_result.is(variable_type::BOOLEAN))
+                value condition_result = *condition->evaluate(execution);
+                if (!condition_result.is(value_type::BOOLEAN))
                 {
-                    throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+                    throw runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
                 }
                 if (!condition_result.get_boolean())
                 {
@@ -492,7 +495,7 @@ reference loop_statement::evaluate([[maybe_unused]] execution_context &execution
         catch (const break_signal &)
         {
             execution.stack_synchronize(break_marker);
-            return variable();
+            return value();
         }
     }
     else
@@ -503,10 +506,10 @@ reference loop_statement::evaluate([[maybe_unused]] execution_context &execution
             while (true)
             {
                 // Check condition
-                variable condition_result = *condition->evaluate(execution);
-                if (!condition_result.is(variable_type::BOOLEAN))
+                value condition_result = *condition->evaluate(execution);
+                if (!condition_result.is(value_type::BOOLEAN))
                 {
-                    throw lentus_runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
+                    throw runtime_exception(std::string("Condition expression must evaluate to a boolean type, got ") + condition_result.get_type_name(), condition);
                 }
                 if (!condition_result.get_boolean())
                 {
@@ -528,14 +531,14 @@ reference loop_statement::evaluate([[maybe_unused]] execution_context &execution
         catch (const break_signal &)
         {
             execution.stack_synchronize(break_marker);
-            return variable();
+            return value();
         }
     }
 }
 
 reference return_statement::evaluate([[maybe_unused]] execution_context &execution) const
 {
-    variable return_value = value ? *value->evaluate(execution) : variable();
+    lentus::value return_value = value ? *value->evaluate(execution) : lentus::value();
     throw return_signal(return_value);
 }
 
@@ -548,3 +551,4 @@ reference continue_statement::evaluate([[maybe_unused]] execution_context &execu
 {
     throw continue_signal();
 }
+} // namespace lentus
