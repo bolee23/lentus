@@ -33,7 +33,7 @@ while true {
         print_line("You guessed it!");
         break;
     }
-    if(guess_number == 10) {
+    if(guess_number++ == 10) {
         print_line("You ran out of guesses");
         print_line("The number was: ", number);
         break;
